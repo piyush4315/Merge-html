@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>BidAnalytics Pro — MSTC Limited</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cyan:#00f5ff;--violet:#7c3aed;--pink:#f72585;--green:#39ff14;--amber:#ffbe0b;
+  --bg:#070711;--bg2:#0d0d24;--surface:rgba(255,255,255,0.03);--border:rgba(255,255,255,0.07);
+  --text:#e2e8f0;--muted:#94a3b8;--dim:#64748b;--deep:#475569;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);font-family:'Inter',sans-serif;color:var(--text);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#0d0d1a}
+::-webkit-scrollbar-thumb{background:var(--violet);border-radius:3px}
+
+/* BG atmosphere */
+body::before{content:'';position:fixed;inset:0;
+  background:radial-gradient(ellipse at 15% 15%,rgba(0,245,255,0.05) 0%,transparent 50%),
+             radial-gradient(ellipse at 85% 85%,rgba(124,58,237,0.07) 0%,transparent 50%),
+             radial-gradient(ellipse at 50% 0%,rgba(247,37,133,0.03) 0%,transparent 40%);
+  pointer-events:none;z-index:0}
+
+/* ── HERO ── */
+.hero{position:relative;z-index:1;padding:52px 32px 28px;text-align:center}
+.eyebrow{font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--cyan);margin-bottom:14px;opacity:.85}
+.hero h1{font-size:clamp(34px,6vw,68px);font-weight:900;line-height:1.05;margin-bottom:14px;
+  background:linear-gradient(135deg,#fff 0%,#c4b5fd 35%,var(--cyan) 65%,var(--violet) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:14px;color:var(--muted);max-width:540px;margin:0 auto 22px;line-height:1.75}
+.badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.badge{padding:3px 11px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;border:1px solid;display:inline-flex;align-items:center;gap:4px}
+.bc{border-color:rgba(0,245,255,.35);background:rgba(0,245,255,.07);color:var(--cyan)}
+.bv{border-color:rgba(124,58,237,.4);background:rgba(124,58,237,.08);color:#c4b5fd}
+.bp{border-color:rgba(247,37,133,.4);background:rgba(247,37,133,.08);color:#f9a8d4}
+.bg-b{border-color:rgba(57,255,20,.4);background:rgba(57,255,20,.07);color:#86efac}
+
+/* ── KPI STRIP ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:14px;padding:24px 32px;position:relative;z-index:1}
+.kpi{padding:20px 18px;border-radius:14px;background:var(--surface);border:1px solid var(--border);backdrop-filter:blur(20px);position:relative;overflow:hidden;transition:transform .25s,box-shadow .25s;cursor:default}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:14px 14px 0 0}
+.kpi:hover{transform:translateY(-3px);box-shadow:0 16px 40px rgba(0,0,0,.4)}
+.kpi.c::before{background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
+.kpi.v::before{background:linear-gradient(90deg,transparent,var(--violet),transparent)}
+.kpi.p::before{background:linear-gradient(90deg,transparent,var(--pink),transparent)}
+.kpi.g::before{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+.kpi.a::before{background:linear-gradient(90deg,transparent,var(--amber),transparent)}
+.kpi-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;opacity:.55;margin-bottom:7px}
+.kpi-val{font-size:20px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1.1}
+.kpi-sub{font-size:10px;opacity:.42;margin-top:5px}
+.c .kpi-val{color:var(--cyan);text-shadow:0 0 18px rgba(0,245,255,.45)}
+.v .kpi-val{color:#c4b5fd;text-shadow:0 0 18px rgba(196,181,253,.4)}
+.p .kpi-val{color:#f9a8d4;text-shadow:0 0 18px rgba(249,168,212,.4)}
+.g .kpi-val{color:#86efac;text-shadow:0 0 18px rgba(134,239,172,.4)}
+.a .kpi-val{color:#fcd34d;text-shadow:0 0 18px rgba(252,211,77,.4)}
+
+/* ── NAV ── */
+.nav{position:relative;z-index:1;display:flex;gap:0;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.06);padding:0 32px}
+.nav-tab{padding:12px 18px;font-size:12px;font-weight:600;letter-spacing:.4px;border:none;background:transparent;cursor:pointer;
+  color:var(--dim);border-bottom:2px solid transparent;transition:all .2s;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:'Inter',sans-serif}
+.nav-tab:hover{color:var(--muted);border-bottom-color:rgba(255,255,255,.1)}
+.nav-tab.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+
+/* ── SECTION ── */
+.section{display:none;padding:24px 32px;position:relative;z-index:1}
+.section.active{display:block}
+
+/* ── GLASS CARD ── */
+.glass{background:rgba(255,255,255,.03);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.07);border-radius:14px}
+.glass-strong{background:rgba(255,255,255,.04);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,.09);border-radius:14px}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.search-box{flex:1;min-width:180px;display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:8px 13px}
+.search-box input{background:none;border:none;color:var(--text);font-size:12px;width:100%;outline:none;font-family:'Inter',sans-serif}
+.search-box input::placeholder{color:var(--deep)}
+.si{color:var(--deep);font-size:13px}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 14px;border-radius:8px;font-size:11px;font-weight:600;border:none;cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;transition:all .2s;letter-spacing:.3px;white-space:nowrap;font-family:'Inter',sans-serif}
+.btn-primary{background:linear-gradient(135deg,rgba(124,58,237,.5),rgba(0,245,255,.1));border:1px solid rgba(0,245,255,.3);color:var(--cyan)}
+.btn-primary:hover{box-shadow:0 0 18px rgba(0,245,255,.18);transform:translateY(-1px)}
+.btn-ghost{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--muted)}
+.btn-ghost:hover{background:rgba(255,255,255,.07);color:var(--text)}
+.btn-danger{background:rgba(247,37,133,.1);border:1px solid rgba(247,37,133,.3);color:#f9a8d4}
+.btn-danger:hover{background:rgba(247,37,133,.18)}
+.btn-success{background:rgba(57,255,20,.1);border:1px solid rgba(57,255,20,.3);color:#86efac}
+.btn-success:hover{background:rgba(57,255,20,.18)}
+.btn-sm{padding:4px 9px;font-size:10px}
+.btn:disabled{opacity:.35;cursor:default;transform:none!important;pointer-events:none}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow:auto;border-radius:13px;border:1px solid rgba(255,255,255,.06);max-height:480px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:600px}
+thead th{background:rgba(0,0,0,.45);padding:11px 13px;text-align:left;font-size:9px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);border-bottom:1px solid rgba(255,255,255,.06);
+  position:sticky;top:0;z-index:5;white-space:nowrap;cursor:pointer;user-select:none;font-family:'Inter',sans-serif}
+thead th:hover{color:var(--muted);background:rgba(0,245,255,.03)}
+thead th.srt{color:var(--cyan)}
+tbody tr{border-bottom:1px solid rgba(255,255,255,.025);transition:background .12s}
+tbody tr:hover{background:rgba(0,245,255,.025)}
+tbody tr.sel{background:rgba(124,58,237,.08);border-left:2px solid var(--violet)}
+tbody td{padding:10px 13px;color:#cbd5e1;vertical-align:middle;font-size:12px}
+tbody td.num{font-family:'JetBrains Mono',monospace;font-size:11px;text-align:right}
+.sort-arrow{margin-left:4px;opacity:.5;font-size:9px}
+.srt .sort-arrow{opacity:1}
+tfoot td{background:rgba(0,245,255,.03);padding:10px 13px;font-family:'JetBrains Mono',monospace;font-size:11px;
+  font-weight:700;color:var(--cyan);border-top:1px solid rgba(0,245,255,.12);text-align:right}
+tfoot td:first-child{text-align:left;font-family:'Inter',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase}
+
+/* cell badges */
+.tag{padding:2px 8px;border-radius:20px;font-size:9px;font-weight:700;display:inline-block}
+.tag-sold{background:rgba(134,239,172,.12);color:#86efac;border:1px solid rgba(134,239,172,.3)}
+.tag-pending{background:rgba(252,211,77,.12);color:#fcd34d;border:1px solid rgba(252,211,77,.3)}
+.tag-excess{background:rgba(249,168,212,.12);color:#f9a8d4;border:1px solid rgba(249,168,212,.3)}
+.tag-settled{background:rgba(134,239,172,.12);color:#86efac;border:1px solid rgba(134,239,172,.3)}
+
+/* editable cell */
+td.ed{cursor:text}
+td.ed:hover{background:rgba(0,245,255,.04)}
+input.cedit{background:rgba(0,245,255,.08);border:1px solid rgba(0,245,255,.4);border-radius:4px;
+  color:var(--text);font-size:11px;font-family:'JetBrains Mono',monospace;padding:3px 6px;width:100%;outline:none}
+
+/* ── COL MANAGER ── */
+.col-mgr{display:flex;flex-wrap:wrap;gap:7px;padding:12px;background:rgba(0,0,0,.3);
+  border-radius:10px;margin-bottom:12px;border:1px solid rgba(255,255,255,.05)}
+.col-tog{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:8px;cursor:pointer;
+  font-size:10px;font-weight:600;border:1px solid;transition:all .2s;user-select:none;font-family:'Inter',sans-serif}
+.col-on{background:rgba(0,245,255,.07);border-color:rgba(0,245,255,.25);color:var(--cyan)}
+.col-off{background:transparent;border-color:rgba(255,255,255,.07);color:var(--deep)}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-on{background:var(--cyan);box-shadow:0 0 7px rgba(0,245,255,.6)}
+.dot-off{background:#334155}
+
+/* ── FILTERS ── */
+.filter-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.fl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)}
+select{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:7px;
+  color:var(--text);font-size:11px;padding:6px 11px;outline:none;cursor:pointer;font-family:'Inter',sans-serif}
+select:focus{border-color:rgba(0,245,255,.4)}
+option{background:#0d0d24}
+
+/* ── PIVOT ── */
+.pivot-layout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px}
+.pzone{background:rgba(0,0,0,.3);border:1px dashed rgba(255,255,255,.1);border-radius:11px;padding:13px;min-height:80px}
+.pzone-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:9px}
+.pchip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:600;
+  background:rgba(0,245,255,.12);border:1px solid rgba(0,245,255,.35);color:var(--cyan);cursor:pointer;margin:3px 3px 3px 0;transition:all .2s}
+.pchip .rm{opacity:.5;font-size:9px;margin-left:2px;cursor:pointer}
+.pchip .rm:hover{opacity:1;color:var(--pink)}
+.fpill{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;cursor:pointer;
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);color:var(--muted);
+  margin:3px 3px 3px 0;display:inline-flex;align-items:center;gap:5px;transition:all .2s;font-family:'Inter',sans-serif}
+.fpill:hover{background:rgba(0,245,255,.07);border-color:rgba(0,245,255,.3);color:var(--cyan)}
+.fpill.used{opacity:.3;cursor:default;pointer-events:none}
+.fpill-btn{font-size:9px;cursor:pointer;padding:0 3px;border-radius:3px;background:rgba(0,245,255,.1);color:var(--cyan)}
+.fpill-btn:hover{background:rgba(0,245,255,.25)}
+.pvtbl-wrap{overflow:auto;max-height:400px;border-radius:11px;border:1px solid rgba(255,255,255,.06)}
+.pvtbl{border-collapse:collapse;font-size:11px;min-width:100%}
+.pvtbl th{background:rgba(0,0,0,.5);padding:9px 13px;text-align:right;font-size:9px;font-weight:700;
+  letter-spacing:1.2px;text-transform:uppercase;color:var(--dim);border-bottom:1px solid rgba(255,255,255,.06);
+  position:sticky;top:0;z-index:2;white-space:nowrap}
+.pvtbl th:first-child{text-align:left}
+.pvtbl td{padding:9px 13px;border-bottom:1px solid rgba(255,255,255,.03);color:#cbd5e1;text-align:right}
+.pvtbl td:first-child{text-align:left;font-weight:500;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pvtbl td.pvnum{font-family:'JetBrains Mono',monospace;color:#a5b4fc}
+.pvtbl tr.pvtot td{background:rgba(0,245,255,.04);border-top:1px solid rgba(0,245,255,.12);font-weight:700;color:var(--cyan);font-family:'JetBrains Mono',monospace}
+.pvtbl tr.pvtot td:first-child{font-family:'Inter',sans-serif;font-size:9px;letter-spacing:1px;text-transform:uppercase}
+.pvtbl tr:hover td{background:rgba(0,245,255,.02)}
+
+/* ── CHARTS ── */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.ccell{padding:20px;border-radius:14px}
+.ctitle{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:16px}
+canvas{max-height:230px}
+
+/* ── VARIANTS ── */
+.var-layout{display:grid;grid-template-columns:270px 1fr;gap:18px}
+.vlist{display:flex;flex-direction:column;gap:7px;margin-bottom:14px}
+.vitem{display:flex;align-items:center;gap:9px;padding:10px 13px;border-radius:10px;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);cursor:pointer;transition:all .2s}
+.vitem:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
+.vitem.va{background:rgba(124,58,237,.11);border-color:rgba(124,58,237,.3)}
+.vname{flex:1;font-size:11px;font-weight:600;color:var(--text)}
+.vmeta{font-size:9px;color:var(--dim);margin-top:2px}
+.vbadge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(0,245,255,.1);color:var(--cyan);border:1px solid rgba(0,245,255,.25)}
+
+/* ── DASHBOARD ── */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.perf-table table{min-width:unset}
+
+/* ── MISC ── */
+.divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent);margin:18px 0}
+.lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:9px}
+.empty{text-align:center;padding:40px;color:var(--deep);font-size:12px}
+.row-bar{display:flex;gap:8px;align-items:center;padding:9px 13px;background:rgba(124,58,237,.07);
+  border:1px solid rgba(124,58,237,.2);border-radius:9px;margin-bottom:11px;font-size:11px;color:#c4b5fd}
+.prog{height:4px;border-radius:2px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:7px}
+.prog-fill{height:100%;border-radius:2px;transition:width .5s}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:22px;right:22px;z-index:999;padding:11px 18px;border-radius:10px;font-size:12px;font-weight:600;
+  background:rgba(0,245,255,.13);border:1px solid rgba(0,245,255,.35);color:var(--cyan);backdrop-filter:blur(20px);
+  display:none;pointer-events:none}
+
+/* ── INPUT ── */
+input[type=text],input[type=number]{background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:7px;
+  color:var(--text);font-size:11px;padding:7px 11px;outline:none;font-family:'Inter',sans-serif;width:100%}
+input[type=text]:focus,input[type=number]:focus{border-color:rgba(0,245,255,.4)}
+input[type=checkbox]{accent-color:var(--violet);cursor:pointer;width:13px;height:13px}
+
+@media(max-width:900px){
+  .chart-grid,.pivot-layout,.var-layout,.dash-grid{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:600px){
+  .hero{padding:32px 16px 20px}.kpi-grid,.section{padding:16px}
+  .nav{padding:0 16px}.hero h1{font-size:28px}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="eyebrow">▸ MSTC LIMITED — BID ANALYTICS PLATFORM</div>
+  <h1>BidAnalytics Pro</h1>
+  <p class="hero-sub">Enterprise-grade pivot analytics, payment tracking &amp; variant management for Auctions 21977–21980</p>
+  <div class="badges">
+    <span class="badge bc">⬡ Power BI Pivot</span>
+    <span class="badge bv">⬡ SAP Variant Manager</span>
+    <span class="badge bp">⬡ Live KPI Dashboard</span>
+    <span class="badge bg-b">⬡ Full CRUD Grid</span>
+  </div>
+</div>
+
+<!-- KPI STRIP -->
+<div class="kpi-grid" id="kpiGrid"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-tab active" data-tab="dashboard">◈ Dashboard</button>
+  <button class="nav-tab" data-tab="rawdata">⊞ Raw Data</button>
+  <button class="nav-tab" data-tab="payments">₹ Payments</button>
+  <button class="nav-tab" data-tab="pivot">⊛ Pivot Analytics</button>
+  <button class="nav-tab" data-tab="charts">◉ Charts</button>
+  <button class="nav-tab" data-tab="variants">⊕ Variants</button>
+</nav>
+
+<!-- SECTIONS -->
+<div id="dashboard" class="section active"></div>
+<div id="rawdata" class="section"></div>
+<div id="payments" class="section"></div>
+<div id="pivot" class="section"></div>
+<div id="charts" class="section"></div>
+<div id="variants" class="section"></div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════
+const RAW = [
+  {id:0,"Bid Sheet":21980,"Lot No.":"1763","Buyer":"AL HAMD TRADE CORPORATION","Lot Name":"SCRAP COPPER OF T/F WINDING","Quantity":669,"Unit":"KG","Status":"Sold","Rate":1181,"Mat. Value":790089},
+  {id:1,"Bid Sheet":21977,"Lot No.":"1874","Buyer":"AL HAMD TRADE CORPORATION","Lot Name":"Scrap of Empty oil drum","Quantity":270,"Unit":"NO","Status":"Sold","Rate":580,"Mat. Value":156600},
+  {id:2,"Bid Sheet":21977,"Lot No.":"1875","Buyer":"F R KHANS ENTERPRISES","Lot Name":"Scrap of Copper of faulty AC compressor","Quantity":28,"Unit":"KG","Status":"Sold","Rate":1456,"Mat. Value":40768},
+  {id:3,"Bid Sheet":21977,"Lot No.":"1876","Buyer":"F R KHANS ENTERPRISES","Lot Name":"Scrap of MS (extracted from equip cage)","Quantity":3000,"Unit":"KG","Status":"Sold","Rate":66,"Mat. Value":198000},
+  {id:4,"Bid Sheet":21980,"Lot No.":"1923","Buyer":"OMKAR STEELS","Lot Name":"SCRAP ACSR CONDUCTORS (Conductor Pieces)","Quantity":7253,"Unit":"KG","Status":"Sold","Rate":227,"Mat. Value":1646431},
+  {id:5,"Bid Sheet":21977,"Lot No.":"1976","Buyer":"SHAR JAHAN TRADERS","Lot Name":"Scrap Power Transformer","Quantity":1,"Unit":"NO","Status":"Sold","Rate":2787314,"Mat. Value":2787314},
+  {id:6,"Bid Sheet":21977,"Lot No.":"2002","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 132 KV CT","Quantity":4,"Unit":"NO","Status":"Sold","Rate":51511,"Mat. Value":206044},
+  {id:7,"Bid Sheet":21977,"Lot No.":"2003","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 145 KV CB","Quantity":1,"Unit":"NO","Status":"Sold","Rate":65007,"Mat. Value":65007},
+  {id:8,"Bid Sheet":21977,"Lot No.":"2005","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 220KV CT","Quantity":1,"Unit":"NO","Status":"Sold","Rate":70006,"Mat. Value":70006},
+  {id:9,"Bid Sheet":21977,"Lot No.":"2006","Buyer":"STERLING ENTERPRISES","Lot Name":"Scrap of empty oil drums","Quantity":25,"Unit":"NO","Status":"Sold","Rate":700,"Mat. Value":17500},
+  {id:10,"Bid Sheet":21977,"Lot No.":"2007","Buyer":"SHAR JAHAN TRADERS","Lot Name":"SCRAP POWER TRANSFORMER","Quantity":1,"Unit":"NO","Status":"Sold","Rate":3857116,"Mat. Value":3857116},
+  {id:11,"Bid Sheet":21977,"Lot No.":"2008","Buyer":"HIND TRADERS","Lot Name":"Scrap of empty oil Drum","Quantity":250,"Unit":"NO","Status":"Sold","Rate":543,"Mat. Value":135750},
+  {id:12,"Bid Sheet":21977,"Lot No.":"2011","Buyer":"STERLING ENTERPRISES","Lot Name":"Scrap of empty oil Barrel","Quantity":22,"Unit":"NO","Status":"Sold","Rate":700,"Mat. Value":15400},
+  {id:13,"Bid Sheet":21978,"Lot No.":"2015","Buyer":"STERLING ENTERPRISES","Lot Name":"Scrap of empty oil Barrels","Quantity":100,"Unit":"NO","Status":"Sold","Rate":710,"Mat. Value":71000},
+  {id:14,"Bid Sheet":21978,"Lot No.":"2018","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 220 KV Circuit Breaker","Quantity":1,"Unit":"NO","Status":"Sold","Rate":220001,"Mat. Value":220001},
+  {id:15,"Bid Sheet":21978,"Lot No.":"2019","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 220 KV Circuit Breaker","Quantity":1,"Unit":"NO","Status":"Sold","Rate":210001,"Mat. Value":210001},
+  {id:16,"Bid Sheet":21978,"Lot No.":"2020","Buyer":"OMKAR STEELS","Lot Name":"SCRAP 80MM² AAAC EARTHWIRE","Quantity":3500,"Unit":"KG","Status":"Sold","Rate":333,"Mat. Value":1165500},
+  {id:17,"Bid Sheet":21978,"Lot No.":"2022","Buyer":"NATIONAL SCRAP AND BUILDING MATERIAL SUPPLIER","Lot Name":"Scrap of 132 KV CT","Quantity":3,"Unit":"NO","Status":"Sold","Rate":110200,"Mat. Value":330600},
+  {id:18,"Bid Sheet":21978,"Lot No.":"2023","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 132 KV CT","Quantity":3,"Unit":"NO","Status":"Sold","Rate":83743,"Mat. Value":251229},
+  {id:19,"Bid Sheet":21978,"Lot No.":"2025","Buyer":"STERLING ENTERPRISES","Lot Name":"Scrap of empty oil Barrels","Quantity":90,"Unit":"NO","Status":"Sold","Rate":700,"Mat. Value":63000},
+  {id:20,"Bid Sheet":21978,"Lot No.":"2027","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 132 KV CT","Quantity":1,"Unit":"NO","Status":"Sold","Rate":50003,"Mat. Value":50003},
+  {id:21,"Bid Sheet":21978,"Lot No.":"2033","Buyer":"WATAN SCRAP TRADERS","Lot Name":"Scrap Empty Oil Drum/ Barrel","Quantity":1000,"Unit":"NO","Status":"Sold","Rate":517,"Mat. Value":517000},
+  {id:22,"Bid Sheet":21978,"Lot No.":"2035","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 132 KV Wave Trap","Quantity":2,"Unit":"NO","Status":"Sold","Rate":14001,"Mat. Value":28002},
+  {id:23,"Bid Sheet":21978,"Lot No.":"2036","Buyer":"M I SCRAP TRADERS","Lot Name":"Mix Scrap (Tower angles & ACSR)","Quantity":8.2,"Unit":"MT","Status":"Sold","Rate":67000,"Mat. Value":549400},
+  {id:24,"Bid Sheet":21978,"Lot No.":"2037","Buyer":"WATAN SCRAP TRADERS","Lot Name":"Scrap of empty oil Barrels","Quantity":50,"Unit":"NO","Status":"Sold","Rate":531,"Mat. Value":26550},
+  {id:25,"Bid Sheet":21978,"Lot No.":"2040","Buyer":"STERLING ENTERPRISES","Lot Name":"Scrap of 33 KV CT","Quantity":3,"Unit":"NO","Status":"Sold","Rate":90002,"Mat. Value":270006},
+  {id:26,"Bid Sheet":21979,"Lot No.":"2043","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 132 KV CT","Quantity":5,"Unit":"NO","Status":"Sold","Rate":80000,"Mat. Value":400000},
+  {id:27,"Bid Sheet":21979,"Lot No.":"2046","Buyer":"SAHARA ENTERPRISES","Lot Name":"Scrap of AAAC Earth wire","Quantity":670,"Unit":"KG","Status":"Sold","Rate":309,"Mat. Value":207030},
+  {id:28,"Bid Sheet":21979,"Lot No.":"2055","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 220 KV CT","Quantity":2,"Unit":"NO","Status":"Sold","Rate":80006,"Mat. Value":160012},
+  {id:29,"Bid Sheet":21979,"Lot No.":"2059","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 33 KV GCB","Quantity":1,"Unit":"NO","Status":"Sold","Rate":29502,"Mat. Value":29502},
+  {id:30,"Bid Sheet":21979,"Lot No.":"2062","Buyer":"STERLING ENTERPRISES","Lot Name":"Scrap of Empty oil Barrels","Quantity":30,"Unit":"NO","Status":"Sold","Rate":702,"Mat. Value":21060},
+  {id:31,"Bid Sheet":21980,"Lot No.":"2067","Buyer":"WATAN SCRAP TRADERS","Lot Name":"Scrap of empty oil drums","Quantity":150,"Unit":"NO","Status":"Sold","Rate":571,"Mat. Value":85650},
+  {id:32,"Bid Sheet":21980,"Lot No.":"2069","Buyer":"STERLING ENTERPRISES","Lot Name":"Scrap of 33 KV CB","Quantity":1,"Unit":"NO","Status":"Sold","Rate":54000,"Mat. Value":54000},
+  {id:33,"Bid Sheet":21980,"Lot No.":"2071","Buyer":"NATIONAL ENTERPRISES","Lot Name":"Scrap of 66 KV Isolater","Quantity":3,"Unit":"NO","Status":"Sold","Rate":25001,"Mat. Value":75003},
+  {id:34,"Bid Sheet":21980,"Lot No.":"2086","Buyer":"KASHYAP TRADING CO","Lot Name":"Scrap of 132 KV CT","Quantity":3,"Unit":"NO","Status":"Sold","Rate":70001,"Mat. Value":210003},
+  {id:35,"Bid Sheet":21980,"Lot No.":"2089","Buyer":"S M ENTERPRISES","Lot Name":"Scrap of 66 kv TBC C & R Panel","Quantity":2,"Unit":"NO","Status":"Sold","Rate":15006,"Mat. Value":30012},
+  {id:36,"Bid Sheet":21980,"Lot No.":"2091","Buyer":"S M ENTERPRISES","Lot Name":"Scrap of 132 KV CT","Quantity":3,"Unit":"NO","Status":"Sold","Rate":40003,"Mat. Value":120009}
+];
+
+const WORK = [
+  {id:0,"Lot No.":"1763","Buyer":"AL HAMD TRADE CORPORATION","Mat. Value":790089,"GST TDS":15802,"Total Receivable":913738,"SD Expected":197522,"SD Received":0,"SD Date":"","FP Expected":716215,"FP Received":0,"FP Date":"","Outstanding":913738},
+  {id:1,"Lot No.":"1875","Buyer":"F R KHANS ENTERPRISES","Mat. Value":40768,"GST TDS":815,"Total Receivable":47149,"SD Expected":10192,"SD Received":10192,"SD Date":"11.08.2026","FP Expected":36957,"FP Received":0,"FP Date":"","Outstanding":36957},
+  {id:2,"Lot No.":"1876","Buyer":"F R KHANS ENTERPRISES","Mat. Value":198000,"GST TDS":3960,"Total Receivable":228987,"SD Expected":49500,"SD Received":49500,"SD Date":"11.08.2026","FP Expected":179487,"FP Received":0,"FP Date":"","Outstanding":179487},
+  {id:3,"Lot No.":"2008","Buyer":"HIND TRADERS","Mat. Value":135750,"GST TDS":0,"Total Receivable":159710,"SD Expected":33938,"SD Received":33938,"SD Date":"14.08.2026","FP Expected":125772,"FP Received":0,"FP Date":"","Outstanding":125772},
+  {id:4,"Lot No.":"2086","Buyer":"KASHYAP TRADING CO","Mat. Value":210003,"GST TDS":0,"Total Receivable":247069,"SD Expected":52501,"SD Received":52501,"SD Date":"17.08.2026","FP Expected":194568,"FP Received":194568,"FP Date":"17.08.2026","Outstanding":0},
+  {id:5,"Lot No.":"2036","Buyer":"M I SCRAP TRADERS","Mat. Value":549400,"GST TDS":10988,"Total Receivable":635381,"SD Expected":137350,"SD Received":137350,"SD Date":"14.08.2026","FP Expected":498031,"FP Received":0,"FP Date":"","Outstanding":498031},
+  {id:6,"Lot No.":"1874","Buyer":"NATIONAL ENTERPRISES","Mat. Value":156600,"GST TDS":0,"Total Receivable":184240,"SD Expected":39150,"SD Received":39150,"SD Date":"13.08.2026","FP Expected":145090,"FP Received":0,"FP Date":"","Outstanding":145090},
+  {id:7,"Lot No.":"2002","Buyer":"NATIONAL ENTERPRISES","Mat. Value":206044,"GST TDS":0,"Total Receivable":242411,"SD Expected":51511,"SD Received":51511,"SD Date":"13.08.2026","FP Expected":190900,"FP Received":0,"FP Date":"","Outstanding":190900},
+  {id:8,"Lot No.":"2003","Buyer":"NATIONAL ENTERPRISES","Mat. Value":65007,"GST TDS":0,"Total Receivable":76481,"SD Expected":16252,"SD Received":16252,"SD Date":"13.08.2026","FP Expected":60229,"FP Received":0,"FP Date":"","Outstanding":60229},
+  {id:9,"Lot No.":"2005","Buyer":"NATIONAL ENTERPRISES","Mat. Value":70006,"GST TDS":0,"Total Receivable":82362,"SD Expected":17502,"SD Received":17502,"SD Date":"13.08.2026","FP Expected":64861,"FP Received":0,"FP Date":"","Outstanding":64861},
+  {id:10,"Lot No.":"2018","Buyer":"NATIONAL ENTERPRISES","Mat. Value":220001,"GST TDS":0,"Total Receivable":258831,"SD Expected":55000,"SD Received":55000,"SD Date":"13.08.2026","FP Expected":203831,"FP Received":0,"FP Date":"","Outstanding":203831},
+  {id:11,"Lot No.":"2019","Buyer":"NATIONAL ENTERPRISES","Mat. Value":210001,"GST TDS":0,"Total Receivable":247066,"SD Expected":52500,"SD Received":52500,"SD Date":"13.08.2026","FP Expected":194566,"FP Received":0,"FP Date":"","Outstanding":194566},
+  {id:12,"Lot No.":"2023","Buyer":"NATIONAL ENTERPRISES","Mat. Value":251229,"GST TDS":0,"Total Receivable":295571,"SD Expected":62807,"SD Received":62807,"SD Date":"13.08.2026","FP Expected":232764,"FP Received":0,"FP Date":"","Outstanding":232764},
+  {id:13,"Lot No.":"2027","Buyer":"NATIONAL ENTERPRISES","Mat. Value":50003,"GST TDS":0,"Total Receivable":58829,"SD Expected":12501,"SD Received":12501,"SD Date":"13.08.2026","FP Expected":46328,"FP Received":0,"FP Date":"","Outstanding":46328},
+  {id:14,"Lot No.":"2035","Buyer":"NATIONAL ENTERPRISES","Mat. Value":28002,"GST TDS":0,"Total Receivable":32944,"SD Expected":7001,"SD Received":7001,"SD Date":"13.08.2026","FP Expected":25944,"FP Received":0,"FP Date":"","Outstanding":25944},
+  {id:15,"Lot No.":"2043","Buyer":"NATIONAL ENTERPRISES","Mat. Value":400000,"GST TDS":0,"Total Receivable":470600,"SD Expected":100000,"SD Received":100000,"SD Date":"13.08.2026","FP Expected":370600,"FP Received":0,"FP Date":"","Outstanding":370600},
+  {id:16,"Lot No.":"2055","Buyer":"NATIONAL ENTERPRISES","Mat. Value":160012,"GST TDS":0,"Total Receivable":188254,"SD Expected":40003,"SD Received":40003,"SD Date":"13.08.2026","FP Expected":148251,"FP Received":0,"FP Date":"","Outstanding":148251},
+  {id:17,"Lot No.":"2059","Buyer":"NATIONAL ENTERPRISES","Mat. Value":29502,"GST TDS":0,"Total Receivable":34709,"SD Expected":7376,"SD Received":7376,"SD Date":"13.08.2026","FP Expected":27334,"FP Received":0,"FP Date":"","Outstanding":27334},
+  {id:18,"Lot No.":"2071","Buyer":"NATIONAL ENTERPRISES","Mat. Value":75003,"GST TDS":0,"Total Receivable":88241,"SD Expected":18751,"SD Received":18751,"SD Date":"13.08.2026","FP Expected":69490,"FP Received":0,"FP Date":"","Outstanding":69490},
+  {id:19,"Lot No.":"2022","Buyer":"NATIONAL SCRAP AND BUILDING MATERIAL SUPPLIER","Mat. Value":330600,"GST TDS":0,"Total Receivable":388951,"SD Expected":82650,"SD Received":82650,"SD Date":"14.08.2026","FP Expected":306301,"FP Received":0,"FP Date":"","Outstanding":306301},
+  {id:20,"Lot No.":"1923","Buyer":"OMKAR STEELS","Mat. Value":1646431,"GST TDS":32929,"Total Receivable":1904097,"SD Expected":411608,"SD Received":411608,"SD Date":"14.08.2026","FP Expected":1492489,"FP Received":0,"FP Date":"","Outstanding":1492489},
+  {id:21,"Lot No.":"2020","Buyer":"OMKAR STEELS","Mat. Value":1165500,"GST TDS":23310,"Total Receivable":1347901,"SD Expected":291375,"SD Received":291375,"SD Date":"10.08.2026","FP Expected":1056526,"FP Received":1056525,"FP Date":"10.08.2026","Outstanding":1},
+  {id:22,"Lot No.":"2089","Buyer":"S M ENTERPRISES","Mat. Value":30012,"GST TDS":0,"Total Receivable":35309,"SD Expected":7503,"SD Received":7503,"SD Date":"14.08.2026","FP Expected":27806,"FP Received":0,"FP Date":"","Outstanding":27806},
+  {id:23,"Lot No.":"2091","Buyer":"S M ENTERPRISES","Mat. Value":120009,"GST TDS":0,"Total Receivable":141191,"SD Expected":30002,"SD Received":30002,"SD Date":"14.08.2026","FP Expected":111188,"FP Received":0,"FP Date":"","Outstanding":111189},
+  {id:24,"Lot No.":"2046","Buyer":"SAHARA ENTERPRISES","Mat. Value":207030,"GST TDS":4141,"Total Receivable":239430,"SD Expected":51758,"SD Received":51758,"SD Date":"11.08.2026","FP Expected":187672,"FP Received":0,"FP Date":"","Outstanding":187672},
+  {id:25,"Lot No.":"1976","Buyer":"SHAR JAHAN TRADERS","Mat. Value":2787314,"GST TDS":0,"Total Receivable":3279275,"SD Expected":696829,"SD Received":696829,"SD Date":"13.08.2026","FP Expected":2582446,"FP Received":2582447,"FP Date":"13.08.2026","Outstanding":-1},
+  {id:26,"Lot No.":"2007","Buyer":"SHAR JAHAN TRADERS","Mat. Value":3857116,"GST TDS":0,"Total Receivable":4537897,"SD Expected":964279,"SD Received":964279,"SD Date":"13.08.2026","FP Expected":3573618,"FP Received":3573619,"FP Date":"13.08.2026","Outstanding":-1},
+  {id:27,"Lot No.":"2006","Buyer":"STERLING ENTERPRISES","Mat. Value":17500,"GST TDS":0,"Total Receivable":20589,"SD Expected":4375,"SD Received":4375,"SD Date":"11.08.2026","FP Expected":16214,"FP Received":16214,"FP Date":"11.08.2026","Outstanding":0},
+  {id:28,"Lot No.":"2011","Buyer":"STERLING ENTERPRISES","Mat. Value":15400,"GST TDS":0,"Total Receivable":18118,"SD Expected":3850,"SD Received":3850,"SD Date":"11.08.2026","FP Expected":14268,"FP Received":14267,"FP Date":"11.08.2026","Outstanding":1},
+  {id:29,"Lot No.":"2015","Buyer":"STERLING ENTERPRISES","Mat. Value":71000,"GST TDS":0,"Total Receivable":83532,"SD Expected":17750,"SD Received":17750,"SD Date":"11.08.2026","FP Expected":65782,"FP Received":65782,"FP Date":"11.08.2026","Outstanding":0},
+  {id:30,"Lot No.":"2025","Buyer":"STERLING ENTERPRISES","Mat. Value":63000,"GST TDS":0,"Total Receivable":74120,"SD Expected":15750,"SD Received":15750,"SD Date":"11.08.2026","FP Expected":58370,"FP Received":58418,"FP Date":"11.08.2026","Outstanding":-48},
+  {id:31,"Lot No.":"2040","Buyer":"STERLING ENTERPRISES","Mat. Value":270006,"GST TDS":0,"Total Receivable":317662,"SD Expected":67502,"SD Received":67502,"SD Date":"11.08.2026","FP Expected":250161,"FP Received":0,"FP Date":"","Outstanding":250160},
+  {id:32,"Lot No.":"2062","Buyer":"STERLING ENTERPRISES","Mat. Value":21060,"GST TDS":0,"Total Receivable":24777,"SD Expected":5265,"SD Received":5265,"SD Date":"11.08.2026","FP Expected":19512,"FP Received":19512,"FP Date":"11.08.2026","Outstanding":0},
+  {id:33,"Lot No.":"2069","Buyer":"STERLING ENTERPRISES","Mat. Value":54000,"GST TDS":0,"Total Receivable":63531,"SD Expected":13500,"SD Received":13500,"SD Date":"11.08.2026","FP Expected":50031,"FP Received":0,"FP Date":"","Outstanding":50031},
+  {id:34,"Lot No.":"2033","Buyer":"WATAN SCRAP TRADERS","Mat. Value":517000,"GST TDS":0,"Total Receivable":608251,"SD Expected":129250,"SD Received":129250,"SD Date":"14.08.2026","FP Expected":479001,"FP Received":0,"FP Date":"","Outstanding":479001},
+  {id:35,"Lot No.":"2037","Buyer":"WATAN SCRAP TRADERS","Mat. Value":26550,"GST TDS":0,"Total Receivable":31236,"SD Expected":6638,"SD Received":6638,"SD Date":"14.08.2026","FP Expected":24599,"FP Received":0,"FP Date":"","Outstanding":24598},
+  {id:36,"Lot No.":"2067","Buyer":"WATAN SCRAP TRADERS","Mat. Value":85650,"GST TDS":0,"Total Receivable":100767,"SD Expected":21413,"SD Received":21413,"SD Date":"14.08.2026","FP Expected":79355,"FP Received":0,"FP Date":"","Outstanding":79354}
+];
+
+// ═══════════════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════════════
+const COLORS = ['#00f5ff','#7c3aed','#f72585','#39ff14','#ffbe0b','#ff6b6b','#4ecdc4','#a8edea','#c4b5fd','#fcd34d'];
+const fmt = n => typeof n==='number' ? '₹'+n.toLocaleString('en-IN',{maximumFractionDigits:0}) : (n||'—');
+const fmtN = n => typeof n==='number' ? n.toLocaleString('en-IN',{maximumFractionDigits:2}) : (n||'—');
+let nextId = 500;
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent='✓ '+msg;t.style.display='block';
+  setTimeout(()=>t.style.display='none',2800);
+}
+
+function el(tag,cls,html){
+  const e=document.createElement(tag);
+  if(cls)e.className=cls;
+  if(html!==undefined)e.innerHTML=html;
+  return e;
+}
+
+// ═══════════════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════════════
+document.querySelectorAll('.nav-tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    btn.classList.add('active');
+    const sec=document.getElementById(btn.dataset.tab);
+    sec.classList.add('active');
+    if(!sec.dataset.built){sec.dataset.built='1';builders[btn.dataset.tab]();}
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// KPI STRIP
+// ═══════════════════════════════════════════════════════
+function buildKPI(){
+  const totalMV=RAW.reduce((s,r)=>s+r['Mat. Value'],0);
+  const totalRec=WORK.reduce((s,r)=>s+(r['Total Receivable']||0),0);
+  const sdRec=WORK.reduce((s,r)=>s+(r['SD Received']||0),0);
+  const fpRec=WORK.reduce((s,r)=>s+(r['FP Received']||0),0);
+  const outstanding=WORK.reduce((s,r)=>s+(r['Outstanding']>0?r['Outstanding']:0),0);
+  const buyers=[...new Set(WORK.map(r=>r.Buyer))].length;
+  const kpis=[
+    {label:'Total Mat. Value',val:fmt(totalMV),sub:'37 lots · 4 auctions',cls:'c'},
+    {label:'Total Receivables',val:fmt(totalRec),sub:'incl. GST + TCS + SC',cls:'v'},
+    {label:'SD Collected',val:fmt(sdRec),sub:'Security deposits received',cls:'g'},
+    {label:'FP Collected',val:fmt(fpRec),sub:'Final payments received',cls:'a'},
+    {label:'Outstanding',val:fmt(outstanding),sub:'Payments still pending',cls:'p'},
+    {label:'Unique Buyers',val:buyers,sub:'Active bidder companies',cls:'c'},
+  ];
+  const grid=document.getElementById('kpiGrid');
+  grid.innerHTML='';
+  kpis.forEach(k=>{
+    const d=el('div',`kpi ${k.cls}`);
+    d.innerHTML=`<div class="kpi-label">${k.label}</div><div class="kpi-val">${k.val}</div><div class="kpi-sub">${k.sub}</div>`;
+    grid.appendChild(d);
+  });
+}
+buildKPI();
+
+// ═══════════════════════════════════════════════════════
+// GENERIC SORTABLE TABLE
+// ═══════════════════════════════════════════════════════
+function makeTable(cols,data,opts={}){
+  // cols: [{key,label,num,badge,width}]
+  // opts: {onEdit, totals, rowSelect}
+  let sortKey=cols[0].key, sortDir='asc', selected=new Set();
+
+  const wrap=el('div','tbl-wrap');
+  const tbl=el('table');
+  const thead=el('thead');const hr=el('tr');
+  if(opts.rowSelect){const th=el('th','');th.style.width='32px';hr.appendChild(th);}
+  cols.forEach(c=>{
+    const th=el('th','');
+    th.innerHTML=`${c.label||c.key}<span class="sort-arrow">⇅</span>`;
+    if(c.width)th.style.width=c.width;
+    th.addEventListener('click',()=>{
+      if(sortKey===c.key)sortDir=sortDir==='asc'?'desc':'asc';
+      else{sortKey=c.key;sortDir='asc';}
+      render();
+    });
+    hr.appendChild(th);
+  });
+  thead.appendChild(hr);tbl.appendChild(thead);
+  const tbody=el('tbody','');tbl.appendChild(tbody);
+
+  if(opts.totals){
+    const tfoot=document.createElement('tfoot');
+    tbl.appendChild(tfoot);
+    wrap._tfoot=tfoot;
+  }
+
+  function render(){
+    // update sort headers
+    thead.querySelectorAll('th').forEach((th,i)=>{
+      const ci=opts.rowSelect?i-1:i;
+      if(ci<0)return;
+      const c=cols[ci];
+      th.className=sortKey===c.key?'srt':'';
+      const arrow=sortKey===c.key?(sortDir==='asc'?' ▲':' ▼'):' ⇅';
+      th.innerHTML=`${c.label||c.key}<span class="sort-arrow">${arrow}</span>`;
+      th.addEventListener('click',()=>{
+        if(sortKey===c.key)sortDir=sortDir==='asc'?'desc':'asc';
+        else{sortKey=c.key;sortDir='asc';}
+        render();
+      });
+    });
+
+    const sorted=[...data].sort((a,b)=>{
+      const av=a[sortKey],bv=b[sortKey];
+      let n=typeof av==='number'&&typeof bv==='number'?av-bv:String(av).localeCompare(String(bv),'en',{numeric:true});
+      return sortDir==='asc'?n:-n;
+    });
+    tbody.innerHTML='';
+    sorted.forEach(row=>{
+      const tr=el('tr','');
+      if(selected.has(row.id))tr.classList.add('sel');
+      if(opts.rowSelect){
+        const td=el('td','');
+        const cb=el('input','');cb.type='checkbox';cb.checked=selected.has(row.id);
+        cb.addEventListener('change',()=>{selected.has(row.id)?selected.delete(row.id):selected.add(row.id);render();opts.onSelect&&opts.onSelect(selected);});
+        td.appendChild(cb);tr.appendChild(td);
+      }
+      cols.forEach(c=>{
+        const td=el('td',c.num?'num':'');
+        const val=row[c.key];
+        if(c.badge){
+          const tag=c.badge(val,row);
+          td.innerHTML=`<span class="tag ${tag.cls}">${tag.text}</span>`;
+        } else if(c.num){
+          td.textContent=typeof val==='number'?fmt(val):(val||'—');
+          if(opts.onEdit){td.classList.add('ed');td.addEventListener('dblclick',()=>startEdit(td,row,c,render));}
+        } else {
+          td.textContent=val||'—';
+          if(c.key!=='Status'&&opts.onEdit){td.classList.add('ed');td.addEventListener('dblclick',()=>startEdit(td,row,c,render));}
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+
+    // totals
+    if(opts.totals&&wrap._tfoot){
+      wrap._tfoot.innerHTML='';
+      const tr=el('tr','');
+      if(opts.rowSelect){const td=el('td','');tr.appendChild(td);}
+      cols.forEach((c,i)=>{
+        const td=el('td','');
+        if(i===0){td.textContent='TOTALS';td.style.textAlign='left';}
+        else if(c.num){
+          const sum=data.reduce((s,r)=>s+(typeof r[c.key]==='number'?r[c.key]:0),0);
+          td.textContent=fmt(sum);
+        }
+        tr.appendChild(td);
+      });
+      wrap._tfoot.appendChild(tr);
+    }
+  }
+
+  render();
+  wrap.appendChild(tbl);
+  wrap._render=render;
+  wrap._getSelected=()=>selected;
+  wrap._clearSelected=()=>{selected.clear();render();};
+  return wrap;
+}
+
+function startEdit(td,row,col,rerender){
+  const orig=row[col.key];
+  const inp=el('input','cedit');
+  inp.value=orig||'';
+  td.textContent='';td.appendChild(inp);inp.focus();
+  const commit=()=>{
+    const v=inp.value;
+    row[col.key]=col.num?(parseFloat(v)||0):v;
+    if(col.key==='Rate'||col.key==='Quantity')row['Mat. Value']=(row.Quantity||0)*(row.Rate||0);
+    rerender();
+  };
+  inp.addEventListener('blur',commit);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')commit();if(e.key==='Escape')rerender();});
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+builders={};
+builders.dashboard=function(){
+  const sec=document.getElementById('dashboard');
+  sec.innerHTML='';
+
+  // By Buyer
+  const buyerMap={};
+  WORK.forEach(r=>{
+    if(!buyerMap[r.Buyer])buyerMap[r.Buyer]={buyer:r.Buyer,total:0,fpRec:0,lots:0};
+    buyerMap[r.Buyer].total+=r['Mat. Value']||0;
+    buyerMap[r.Buyer].fpRec+=r['FP Received']||0;
+    buyerMap[r.Buyer].lots++;
+  });
+  const byBuyer=Object.values(buyerMap).sort((a,b)=>b.total-a.total);
+
+  // By Auction
+  const auctMap={};
+  RAW.forEach(r=>{
+    const k=String(r['Bid Sheet']);
+    if(!auctMap[k])auctMap[k]={name:k,value:0,lots:0};
+    auctMap[k].value+=r['Mat. Value'];auctMap[k].lots++;
+  });
+  const byAuct=Object.values(auctMap).sort((a,b)=>a.name-b.name);
+
+  // Chart row
+  const cg=el('div','dash-grid');
+
+  // Bar chart
+  const c1=el('div','ccell glass');
+  c1.innerHTML='<div class="ctitle">Material Value by Buyer</div><canvas id="dc1"></canvas>';
+  cg.appendChild(c1);
+
+  // Donut
+  const c2=el('div','ccell glass');
+  c2.innerHTML='<div class="ctitle">Auction Distribution</div><canvas id="dc2"></canvas>';
+  cg.appendChild(c2);
+  sec.appendChild(cg);
+
+  // Perf table
+  const pt=el('div','glass perf-table');
+  pt.style.padding='20px';pt.style.borderRadius='14px';pt.style.marginTop='18px';
+  pt.innerHTML='<div class="ctitle">Buyer Recovery Performance</div>';
+  let ptHTML=`<div class="tbl-wrap"><table><thead><tr>
+    <th>Buyer</th><th>Lots</th><th style="text-align:right">Mat. Value</th>
+    <th style="text-align:right">FP Received</th><th style="text-align:right">Recovery</th>
+    <th style="min-width:120px">Progress</th></tr></thead><tbody>`;
+  byBuyer.forEach(b=>{
+    const pct=b.total>0?Math.min(100,(b.fpRec/b.total)*100):0;
+    const clr=pct>50?'#86efac':'#fcd34d';
+    const shortName=b.buyer.split(' ').slice(0,3).join(' ');
+    ptHTML+=`<tr>
+      <td style="font-weight:500">${shortName}</td>
+      <td class="num" style="text-align:right">${b.lots}</td>
+      <td class="num">${fmt(b.total)}</td>
+      <td class="num" style="color:#86efac">${b.fpRec>0?fmt(b.fpRec):'—'}</td>
+      <td class="num" style="color:${clr}">${pct.toFixed(1)}%</td>
+      <td><div class="prog"><div class="prog-fill" style="width:${pct}%;background:${clr}"></div></div></td>
+    </tr>`;
+  });
+  ptHTML+='</tbody></table></div>';
+  pt.innerHTML+='<div class="ctitle">Buyer Recovery Performance</div>'+ptHTML.replace('<div class="ctitle">Buyer Recovery Performance</div>','');
+  pt.querySelector('.ctitle').remove();
+  sec.appendChild(pt);
+
+  // Draw charts
+  setTimeout(()=>{
+    new Chart(document.getElementById('dc1'),{
+      type:'bar',
+      data:{
+        labels:byBuyer.slice(0,7).map(b=>b.buyer.split(' ').slice(0,2).join(' ')),
+        datasets:[{data:byBuyer.slice(0,7).map(b=>b.total),backgroundColor:COLORS.slice(0,7),borderRadius:5,borderSkipped:false}]
+      },
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>'₹'+ctx.raw.toLocaleString('en-IN')}}},
+        scales:{x:{ticks:{color:'#64748b',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'}},
+                y:{ticks:{color:'#64748b',font:{size:9},callback:v=>'₹'+(v/1e6).toFixed(1)+'M'},grid:{color:'rgba(255,255,255,0.04)'}}}}
+    });
+    new Chart(document.getElementById('dc2'),{
+      type:'doughnut',
+      data:{labels:byAuct.map(a=>a.name),datasets:[{data:byAuct.map(a=>a.value),backgroundColor:COLORS.slice(0,4),borderWidth:3,borderColor:'#070711',hoverBorderColor:'#fff'}]},
+      options:{responsive:true,plugins:{legend:{labels:{color:'#94a3b8',font:{size:10}}},tooltip:{callbacks:{label:ctx=>`₹${ctx.raw.toLocaleString('en-IN')} (${byAuct[ctx.dataIndex].lots} lots)`}}},cutout:'58%'}
+    });
+  },50);
+};
+
+// ═══════════════════════════════════════════════════════
+// RAW DATA GRID
+// ═══════════════════════════════════════════════════════
+builders.rawdata=function(){
+  const sec=document.getElementById('rawdata');sec.innerHTML='';
+  const data=[...RAW];
+  const allCols=[
+    {key:'Bid Sheet',label:'Bid Sheet',num:true},
+    {key:'Lot No.',label:'Lot No.'},
+    {key:'Buyer',label:'Buyer'},
+    {key:'Lot Name',label:'Lot Name'},
+    {key:'Quantity',label:'Qty',num:true},
+    {key:'Unit',label:'Unit'},
+    {key:'Status',label:'Status',badge:(v)=>({cls:'tag-sold',text:v})},
+    {key:'Rate',label:'Rate',num:true},
+    {key:'Mat. Value',label:'Mat. Value',num:true}
+  ];
+  let visCols=new Set(allCols.map(c=>c.key));
+  let filterBid='all', filterUnit='all', search='';
+
+  // Col manager
+  const cmDiv=el('div','');
+  cmDiv.innerHTML='<div class="lbl">Column Visibility</div>';
+  const cm=el('div','col-mgr');
+  allCols.forEach(c=>{
+    const t=el('div','col-tog col-on',`<div class="dot dot-on"></div>${c.label||c.key}`);
+    t.addEventListener('click',()=>{
+      if(visCols.has(c.key)){visCols.delete(c.key);t.className='col-tog col-off';t.querySelector('.dot').className='dot dot-off';}
+      else{visCols.add(c.key);t.className='col-tog col-on';t.querySelector('.dot').className='dot dot-on';}
+      rebuild();
+    });
+    cm.appendChild(t);
+  });
+  cmDiv.appendChild(cm);sec.appendChild(cmDiv);
+
+  // Filters
+  const fr=el('div','filter-row');
+  const bidSheets=[...new Set(data.map(r=>String(r['Bid Sheet'])))].sort();
+  const units=[...new Set(data.map(r=>r.Unit))].sort();
+  fr.innerHTML=`<span class="fl">Auction</span>
+    <select id="rf-bid"><option value="all">All Auctions</option>${bidSheets.map(b=>`<option>${b}</option>`).join('')}</select>
+    <span class="fl" style="margin-left:8px">Unit</span>
+    <select id="rf-unit"><option value="all">All Units</option>${units.map(u=>`<option>${u}</option>`).join('')}</select>`;
+  sec.appendChild(fr);
+  fr.querySelector('#rf-bid').addEventListener('change',e=>{filterBid=e.target.value;rebuild();});
+  fr.querySelector('#rf-unit').addEventListener('change',e=>{filterUnit=e.target.value;rebuild();});
+
+  // Toolbar
+  const tb=el('div','toolbar');
+  const sb=el('div','search-box','<span class="si">⌕</span>');
+  const inp=el('input','');inp.placeholder='Search lots, buyers…';inp.type='text';
+  inp.addEventListener('input',e=>{search=e.target.value;rebuild();});
+  sb.appendChild(inp);tb.appendChild(sb);
+  const btnAdd=el('button','btn btn-success','＋ Add Row');
+  btnAdd.addEventListener('click',()=>{
+    const nr={id:nextId++,'Bid Sheet':21977,'Lot No.':String(nextId),'Buyer':'NEW BUYER','Lot Name':'New Item','Quantity':1,'Unit':'NO','Status':'Sold','Rate':0,'Mat. Value':0};
+    data.push(nr);rebuild();showToast('Row added');
+  });
+  tb.appendChild(btnAdd);
+  const btnReset=el('button','btn btn-ghost','↺ Reset');
+  btnReset.addEventListener('click',()=>{data.length=0;RAW.forEach(r=>data.push({...r}));rebuild();showToast('Data reset');});
+  tb.appendChild(btnReset);
+  const delBtn=el('button','btn btn-danger','✕ Delete Selected');
+  delBtn.style.display='none';
+  tb.appendChild(delBtn);
+  const cnt=el('span','');cnt.style.cssText='font-size:11px;color:#475569;margin-left:auto';
+  tb.appendChild(cnt);
+  sec.appendChild(tb);
+
+  let tblWrap=null;
+  function rebuild(){
+    let d=data;
+    if(filterBid!=='all')d=d.filter(r=>String(r['Bid Sheet'])===filterBid);
+    if(filterUnit!=='all')d=d.filter(r=>r.Unit===filterUnit);
+    if(search){const q=search.toLowerCase();d=d.filter(r=>Object.values(r).some(v=>String(v).toLowerCase().includes(q)));}
+    cnt.textContent=`${d.length} / ${data.length} rows`;
+    const cols=allCols.filter(c=>visCols.has(c.key));
+    if(tblWrap)tblWrap.remove();
+    tblWrap=makeTable(cols,d,{
+      onEdit:true,rowSelect:true,
+      onSelect:(sel)=>{
+        delBtn.style.display=sel.size>0?'':'none';
+        delBtn.textContent=`✕ Delete (${sel.size})`;
+      }
+    });
+    sec.appendChild(tblWrap);
+    delBtn.onclick=()=>{
+      const sel=tblWrap._getSelected();
+      sel.forEach(id=>{const idx=data.findIndex(r=>r.id===id);if(idx>-1)data.splice(idx,1);});
+      sel.clear();delBtn.style.display='none';rebuild();showToast(`${sel.size||'Selected'} rows deleted`);
+    };
+  }
+  rebuild();
+};
+
+// ═══════════════════════════════════════════════════════
+// PAYMENTS GRID
+// ═══════════════════════════════════════════════════════
+builders.payments=function(){
+  const sec=document.getElementById('payments');sec.innerHTML='';
+  const data=[...WORK];
+  const allCols=[
+    {key:'Lot No.',label:'Lot No.'},
+    {key:'Buyer',label:'Buyer'},
+    {key:'Mat. Value',label:'Mat. Value',num:true},
+    {key:'GST TDS',label:'GST TDS',num:true},
+    {key:'Total Receivable',label:'Total Receivable',num:true},
+    {key:'SD Expected',label:'SD Expected',num:true},
+    {key:'SD Received',label:'SD Received',num:true},
+    {key:'SD Date',label:'SD Date'},
+    {key:'FP Expected',label:'FP Expected',num:true},
+    {key:'FP Received',label:'FP Received',num:true},
+    {key:'FP Date',label:'FP Date'},
+    {key:'Outstanding',label:'Outstanding',badge:(v)=>{
+      if(v===0)return{cls:'tag-settled',text:'Settled'};
+      if(v<0)return{cls:'tag-excess',text:'Excess ₹'+Math.abs(v).toLocaleString('en-IN')};
+      return{cls:'tag-pending',text:'₹'+v.toLocaleString('en-IN')};
+    }}
+  ];
+  let visCols=new Set(allCols.map(c=>c.key));
+  let filterBuyer='all',search='';
+
+  const cmDiv=el('div','');cmDiv.innerHTML='<div class="lbl">Column Visibility</div>';
+  const cm=el('div','col-mgr');
+  const colLabels={'SD Expected':'SD Exp','SD Received':'SD Rec','SD Date':'SD Date','FP Expected':'FP Exp','FP Received':'FP Rec','FP Date':'FP Date','Total Receivable':'Total Rec'};
+  allCols.forEach(c=>{
+    const lbl=colLabels[c.key]||c.label||c.key;
+    const t=el('div','col-tog col-on',`<div class="dot dot-on"></div>${lbl}`);
+    t.addEventListener('click',()=>{
+      if(visCols.has(c.key)){visCols.delete(c.key);t.className='col-tog col-off';t.querySelector('.dot').className='dot dot-off';}
+      else{visCols.add(c.key);t.className='col-tog col-on';t.querySelector('.dot').className='dot dot-on';}
+      rebuild();
+    });
+    cm.appendChild(t);
+  });
+  cmDiv.appendChild(cm);sec.appendChild(cmDiv);
+
+  const buyers=[...new Set(data.map(r=>r.Buyer))].sort();
+  const fr=el('div','filter-row');
+  fr.innerHTML=`<span class="fl">Buyer</span>
+    <select id="pf-buy"><option value="all">All Buyers</option>${buyers.map(b=>`<option>${b}</option>`).join('')}</select>`;
+  sec.appendChild(fr);
+  fr.querySelector('#pf-buy').addEventListener('change',e=>{filterBuyer=e.target.value;rebuild();});
+
+  const tb=el('div','toolbar');
+  const sb=el('div','search-box','<span class="si">⌕</span>');
+  const inp=el('input','');inp.placeholder='Search payments…';inp.type='text';
+  inp.addEventListener('input',e=>{search=e.target.value;rebuild();});
+  sb.appendChild(inp);tb.appendChild(sb);
+  const btnAdd=el('button','btn btn-success','＋ Add Row');
+  btnAdd.addEventListener('click',()=>{
+    data.push({id:nextId++,'Lot No.':String(nextId),'Buyer':'NEW BUYER','Mat. Value':0,'GST TDS':0,'Total Receivable':0,'SD Expected':0,'SD Received':0,'SD Date':'','FP Expected':0,'FP Received':0,'FP Date':'','Outstanding':0});
+    rebuild();showToast('Row added');
+  });
+  tb.appendChild(btnAdd);
+  const btnReset=el('button','btn btn-ghost','↺ Reset');
+  btnReset.addEventListener('click',()=>{data.length=0;WORK.forEach(r=>data.push({...r}));rebuild();showToast('Reset');});
+  tb.appendChild(btnReset);
+  const delBtn=el('button','btn btn-danger','✕ Delete Selected');delBtn.style.display='none';tb.appendChild(delBtn);
+  const cnt=el('span','');cnt.style.cssText='font-size:11px;color:#475569;margin-left:auto';tb.appendChild(cnt);
+  sec.appendChild(tb);
+
+  let tblWrap=null;
+  function rebuild(){
+    let d=data;
+    if(filterBuyer!=='all')d=d.filter(r=>r.Buyer===filterBuyer);
+    if(search){const q=search.toLowerCase();d=d.filter(r=>Object.values(r).some(v=>String(v).toLowerCase().includes(q)));}
+    cnt.textContent=`${d.length} rows`;
+    const cols=allCols.filter(c=>visCols.has(c.key));
+    if(tblWrap)tblWrap.remove();
+    tblWrap=makeTable(cols,d,{onEdit:true,rowSelect:true,totals:true,onSelect:(sel)=>{delBtn.style.display=sel.size>0?'':'none';delBtn.textContent=`✕ Delete (${sel.size})`;}});
+    sec.appendChild(tblWrap);
+    delBtn.onclick=()=>{const sel=tblWrap._getSelected();sel.forEach(id=>{const idx=data.findIndex(r=>r.id===id);if(idx>-1)data.splice(idx,1);});sel.clear();delBtn.style.display='none';rebuild();showToast('Deleted');};
+  }
+  rebuild();
+};
+
+// ═══════════════════════════════════════════════════════
+// PIVOT ANALYTICS
+// ═══════════════════════════════════════════════════════
+builders.pivot=function(){
+  const sec=document.getElementById('pivot');sec.innerHTML='';
+  const DIMS=['Bid Sheet','Buyer','Unit','Status','Lot No.'];
+  const VALS=['Mat. Value','Quantity','Rate'];
+  let rowFlds=['Buyer'],colFlds=['Bid Sheet'],valFld='Mat. Value',aggFn='sum';
+
+  const controls=el('div','');
+
+  // Top bar
+  const topBar=el('div','filter-row');
+  topBar.innerHTML=`<span class="fl">Value</span>
+    <select id="pv-val">${VALS.map(v=>`<option${v===valFld?' selected':''}>${v}</option>`).join('')}</select>
+    <span class="fl" style="margin-left:8px">Aggregation</span>
+    <select id="pv-agg">
+      <option value="sum">Sum</option><option value="avg">Average</option>
+      <option value="count">Count</option><option value="max">Maximum</option><option value="min">Minimum</option>
+    </select>`;
+  controls.appendChild(topBar);
+  topBar.querySelector('#pv-val').addEventListener('change',e=>{valFld=e.target.value;render();});
+  topBar.querySelector('#pv-agg').addEventListener('change',e=>{aggFn=e.target.value;render();});
+
+  // Zones
+  const zoneRow=el('div','pivot-layout');
+
+  const zRow=el('div','pzone glass');
+  zRow.innerHTML='<div class="pzone-label">↕ Row Fields</div><div id="pv-row-chips"></div>';
+  zoneRow.appendChild(zRow);
+
+  const zCol=el('div','pzone glass');
+  zCol.innerHTML='<div class="pzone-label">↔ Column Fields</div><div id="pv-col-chips"></div>';
+  zoneRow.appendChild(zCol);
+
+  const zFlds=el('div','pzone glass');
+  zFlds.innerHTML='<div class="pzone-label">⊞ Available Fields</div><div id="pv-fields"></div>';
+  zoneRow.appendChild(zFlds);
+  controls.appendChild(zoneRow);
+  sec.appendChild(controls);
+
+  const pvOut=el('div','');sec.appendChild(pvOut);
+
+  function renderZones(){
+    const used=new Set([...rowFlds,...colFlds]);
+    // row chips
+    const rc=document.getElementById('pv-row-chips');
+    rc.innerHTML='';
+    rowFlds.forEach(f=>{
+      const c=el('div','pchip',`${f} <span class="rm" data-f="${f}" data-z="row">✕</span>`);
+      rc.appendChild(c);
+    });
+    if(!rowFlds.length)rc.innerHTML='<span style="font-size:10px;color:#475569">Click ↕ on fields →</span>';
+    // col chips
+    const cc=document.getElementById('pv-col-chips');
+    cc.innerHTML='';
+    colFlds.forEach(f=>{
+      const c=el('div','pchip',`${f} <span class="rm" data-f="${f}" data-z="col">✕</span>`);
+      cc.appendChild(c);
+    });
+    if(!colFlds.length)cc.innerHTML='<span style="font-size:10px;color:#475569">Click ↔ on fields →</span>';
+    // available fields
+    const af=document.getElementById('pv-fields');
+    af.innerHTML='';
+    DIMS.forEach(f=>{
+      const p=el('div',`fpill${used.has(f)?' used':''}`,`${f}${!used.has(f)?` <span class="fpill-btn" data-f="${f}" data-z="row" title="Add to Rows">↕</span> <span class="fpill-btn" data-f="${f}" data-z="col" title="Add to Cols">↔</span>`:''}`);
+      af.appendChild(p);
+    });
+    // bind remove
+    document.querySelectorAll('.rm').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        const f=btn.dataset.f,z=btn.dataset.z;
+        if(z==='row')rowFlds=rowFlds.filter(x=>x!==f);
+        else colFlds=colFlds.filter(x=>x!==f);
+        renderZones();render();
+      });
+    });
+    // bind add
+    document.querySelectorAll('.fpill-btn').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        const f=btn.dataset.f,z=btn.dataset.z;
+        if(z==='row'&&!rowFlds.includes(f))rowFlds.push(f);
+        if(z==='col'&&!colFlds.includes(f))colFlds.push(f);
+        renderZones();render();
+      });
+    });
+  }
+
+  function agg(vals){
+    if(!vals.length)return 0;
+    if(aggFn==='sum')return vals.reduce((a,b)=>a+b,0);
+    if(aggFn==='avg')return vals.reduce((a,b)=>a+b,0)/vals.length;
+    if(aggFn==='count')return vals.length;
+    if(aggFn==='max')return Math.max(...vals);
+    if(aggFn==='min')return Math.min(...vals);
+    return 0;
+  }
+
+  function render(){
+    pvOut.innerHTML='';
+    if(!rowFlds.length){pvOut.innerHTML='<div class="empty glass" style="border-radius:14px;margin-top:14px">Add at least one Row field to build the pivot table.</div>';return;}
+    const rowVals=[...new Set(RAW.map(r=>rowFlds.map(f=>r[f]).join(' | ')))].sort();
+    const colVals=colFlds.length?[...new Set(RAW.map(r=>colFlds.map(f=>r[f]).join(' | ')))].sort():['Value'];
+    const cells={};
+    RAW.forEach(row=>{
+      const rk=rowFlds.map(f=>row[f]).join(' | ');
+      const ck=colFlds.length?colFlds.map(f=>row[f]).join(' | '):'Value';
+      if(!cells[rk])cells[rk]={};
+      if(!cells[rk][ck])cells[rk][ck]=[];
+      cells[rk][ck].push(row[valFld]||0);
+    });
+
+    const wrap=el('div','pvtbl-wrap');
+    const tbl=el('table','pvtbl');
+    // Head
+    const thead=el('thead','');
+    const hr=el('tr','');
+    hr.appendChild(el('th','',(rowFlds.join(' / '))));
+    colVals.forEach(c=>hr.appendChild(Object.assign(el('th','',c))));
+    hr.appendChild(Object.assign(el('th','','Total'),{style:'color:#00f5ff'}));
+    thead.appendChild(hr);tbl.appendChild(thead);
+    // Body
+    const tbody=el('tbody','');
+    const grandTotals={};colVals.forEach(c=>grandTotals[c]=0);let grandTotal=0;
+    rowVals.forEach(rk=>{
+      const tr=el('tr','');
+      tr.appendChild(el('td','',rk));
+      let rowTotal=0;
+      colVals.forEach(c=>{
+        const v=agg(cells[rk]?.[c]||[]);
+        rowTotal+=v;
+        grandTotals[c]=(grandTotals[c]||0)+v;
+        tr.appendChild(Object.assign(el('td','pvnum',aggFn==='count'?v.toFixed(0):fmt(v))));
+      });
+      grandTotal+=rowTotal;
+      tr.appendChild(Object.assign(el('td','pvnum',fmt(rowTotal)),{style:'color:#00f5ff;font-weight:700'}));
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    // Grand total row
+    const tfoot=el('tfoot','');
+    const gtr=el('tr','pvtot','');
+    gtr.appendChild(el('td','','Grand Total'));
+    colVals.forEach(c=>gtr.appendChild(el('td','',fmt(grandTotals[c]||0))));
+    gtr.appendChild(el('td','',fmt(grandTotal)));
+    tfoot.appendChild(gtr);tbl.appendChild(tfoot);
+    wrap.appendChild(tbl);
+    pvOut.appendChild(wrap);
+  }
+
+  renderZones();render();
+};
+
+// ═══════════════════════════════════════════════════════
+// CHARTS
+// ═══════════════════════════════════════════════════════
+builders.charts=function(){
+  const sec=document.getElementById('charts');sec.innerHTML='';
+
+  // Build data
+  const auctMap={};RAW.forEach(r=>{const k=String(r['Bid Sheet']);if(!auctMap[k])auctMap[k]={name:k,v:0};auctMap[k].v+=r['Mat. Value'];});
+  const byAuct=Object.values(auctMap).sort((a,b)=>a.name-b.name);
+
+  const buyMap={};RAW.forEach(r=>{const k=r.Buyer.split(' ').slice(0,2).join(' ');if(!buyMap[k])buyMap[k]={name:k,v:0};buyMap[k].v+=r['Mat. Value'];});
+  const byBuy=Object.values(buyMap).sort((a,b)=>b.v-a.v);
+
+  const unitMap={};RAW.forEach(r=>{if(!unitMap[r.Unit])unitMap[r.Unit]={name:r.Unit,v:0};unitMap[r.Unit].v+=r['Mat. Value'];});
+  const byUnit=Object.values(unitMap);
+
+  let settled=0,partPaid=0,pending=0;
+  WORK.forEach(r=>{if(r['FP Received']>0)settled++;else if(r['SD Received']>0)partPaid++;else pending++;});
+
+  const grid=el('div','chart-grid');
+  const charts=[
+    {id:'ch1',title:'Mat. Value by Auction',type:'bar',labels:byAuct.map(a=>a.name),data:byAuct.map(a=>a.v)},
+    {id:'ch2',title:'Payment Status',type:'doughnut',labels:['Fully Settled','SD Only','Pending'],data:[settled,partPaid,pending]},
+    {id:'ch3',title:'Top Buyers (Mat. Value)',type:'bar',labels:byBuy.slice(0,8).map(b=>b.name),data:byBuy.slice(0,8).map(b=>b.v),horizontal:true},
+    {id:'ch4',title:'Unit Type Value Share',type:'pie',labels:byUnit.map(u=>u.name),data:byUnit.map(u=>u.v)},
+    {id:'ch5',title:'Top 15 Lots — Mat. Value',type:'bar',labels:RAW.slice().sort((a,b)=>b['Mat. Value']-a['Mat. Value']).slice(0,15).map(r=>r['Lot No.']),data:RAW.slice().sort((a,b)=>b['Mat. Value']-a['Mat. Value']).slice(0,15).map(r=>r['Mat. Value']),span:true},
+  ];
+
+  charts.forEach(c=>{
+    const cell=el('div','ccell glass-strong');
+    if(c.span)cell.style.gridColumn='1 / -1';
+    cell.innerHTML=`<div class="ctitle">${c.title}</div><canvas id="${c.id}"></canvas>`;
+    grid.appendChild(cell);
+  });
+  sec.appendChild(grid);
+
+  const ttOpts={callbacks:{label:ctx=>'₹'+ctx.raw.toLocaleString('en-IN')}};
+  const gridColor='rgba(255,255,255,0.04)';
+
+  setTimeout(()=>{
+    charts.forEach((c,i)=>{
+      const cfg={type:c.type,data:{labels:c.labels,datasets:[{data:c.data,backgroundColor:COLORS.slice(0,c.data.length),borderRadius:c.type==='bar'?5:0,borderColor:'#070711',borderWidth:c.type==='bar'?0:2}]},options:{responsive:true,plugins:{legend:{display:c.type!=='bar',labels:{color:'#94a3b8',font:{size:10}}},tooltip:ttOpts}}};
+      if(c.type==='bar'){
+        cfg.options.scales={
+          x:{ticks:{color:'#64748b',font:{size:9}},grid:{color:gridColor},indexAxis:c.horizontal?'y':undefined},
+          y:{ticks:{color:'#64748b',font:{size:9},callback:v=>'₹'+(v/1e6).toFixed(1)+'M'},grid:{color:gridColor}}
+        };
+        if(c.horizontal){
+          cfg.options.indexAxis='y';
+          cfg.options.scales.y.ticks.callback=undefined;
+          cfg.options.scales.x.ticks.callback=v=>'₹'+(v/1e6).toFixed(1)+'M';
+        }
+      }
+      new Chart(document.getElementById(c.id),cfg);
+    });
+  },50);
+};
+
+// ═══════════════════════════════════════════════════════
+// VARIANTS
+// ═══════════════════════════════════════════════════════
+builders.variants=function(){
+  const sec=document.getElementById('variants');sec.innerHTML='';
+  const defaultVariants=[
+    {id:1,name:'All Lots — Default',desc:'Full view, no filters',filters:{},sortKey:'Lot No.',sortDir:'asc'},
+    {id:2,name:'High Value Descending',desc:'Sorted by Mat. Value ↓',filters:{},sortKey:'Mat. Value',sortDir:'desc'},
+    {id:3,name:'Auction 21977 Only',desc:'Filter: Bid Sheet = 21977',filters:{'Bid Sheet':21977},sortKey:'Lot No.',sortDir:'asc'},
+    {id:4,name:'Auction 21978 Only',desc:'Filter: Bid Sheet = 21978',filters:{'Bid Sheet':21978},sortKey:'Lot No.',sortDir:'asc'},
+    {id:5,name:'KG Unit Scrap',desc:'Filter: Unit = KG, by value',filters:{Unit:'KG'},sortKey:'Mat. Value',sortDir:'desc'},
+    {id:6,name:'NO Unit Items',desc:'Filter: Unit = NO',filters:{Unit:'NO'},sortKey:'Rate',sortDir:'desc'},
+  ];
+  let variants=[...defaultVariants];
+  let activeId=1;
+  let sortKey='Lot No.',sortDir='asc';
+
+  const layout=el('div','var-layout');
+  const left=el('div','');const right=el('div','');
+  layout.appendChild(left);layout.appendChild(right);
+  sec.appendChild(layout);
+
+  let previewWrap=null;
+
+  function renderLeft(){
+    left.innerHTML='<div class="lbl">Saved Variants</div>';
+    const vlist=el('div','vlist');
+    variants.forEach(v=>{
+      const item=el('div',`vitem${v.id===activeId?' va':''}`,
+        `<div style="flex:1"><div class="vname">${v.name}</div><div class="vmeta">${v.desc}</div></div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-sm btn-ghost" data-id="${v.id}" data-dir="-1">▲</button>
+          <button class="btn btn-sm btn-ghost" data-id="${v.id}" data-dir="1">▼</button>
+          ${variants.length>1?`<button class="btn btn-sm btn-danger" data-del="${v.id}">✕</button>`:''}
+        </div>`
+      );
+      item.addEventListener('click',e=>{
+        if(e.target.dataset.dir){
+          const idx=variants.findIndex(x=>x.id===v.id);
+          const dir=parseInt(e.target.dataset.dir);
+          if(idx+dir>=0&&idx+dir<variants.length){[variants[idx],variants[idx+dir]]=[variants[idx+dir],variants[idx]];}
+          renderLeft();return;
+        }
+        if(e.target.dataset.del){
+          variants=variants.filter(x=>x.id!==parseInt(e.target.dataset.del));
+          if(activeId===v.id)activeId=variants[0].id;
+          renderLeft();renderRight();return;
+        }
+        activeId=v.id;renderLeft();renderRight();
+      });
+      vlist.appendChild(item);
+    });
+    left.appendChild(vlist);
+
+    // Create form
+    const div2=el('div','');
+    div2.innerHTML='<div class="divider"></div><div class="lbl">Create New Variant</div>';
+    const nameInp=el('input','');nameInp.type='text';nameInp.placeholder='Variant name';nameInp.style.marginBottom='8px';
+    const descInp=el('input','');descInp.type='text';descInp.placeholder='Description (optional)';descInp.style.marginBottom='8px';
+    const saveBtn=el('button','btn btn-primary','＋ Save Variant');
+    saveBtn.addEventListener('click',()=>{
+      if(!nameInp.value.trim())return;
+      variants.push({id:nextId++,name:nameInp.value.trim(),desc:descInp.value.trim(),filters:{},sortKey:'Lot No.',sortDir:'asc'});
+      nameInp.value='';descInp.value='';renderLeft();showToast('Variant saved');
+    });
+    div2.appendChild(nameInp);div2.appendChild(descInp);div2.appendChild(saveBtn);
+    left.appendChild(div2);
+  }
+
+  function renderRight(){
+    right.innerHTML='';
+    const v=variants.find(x=>x.id===activeId)||variants[0];
+    let d=RAW.filter(r=>{
+      return Object.entries(v.filters||{}).every(([k,val])=>r[k]===val);
+    });
+    const sk=v.sortKey;const sd=v.sortDir;
+    d=[...d].sort((a,b)=>{
+      const av=a[sk],bv=b[sk];
+      const n=typeof av==='number'&&typeof bv==='number'?av-bv:String(av).localeCompare(String(bv),'en',{numeric:true});
+      return sd==='asc'?n:-n;
+    });
+
+    // Header
+    const hdr=el('div','');
+    hdr.style.cssText='display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap';
+    hdr.innerHTML=`<div><div style="font-size:14px;font-weight:700;color:#e2e8f0">${v.name}</div>
+      <div style="font-size:10px;color:#64748b;margin-top:2px">${v.desc} — ${d.length} records</div></div>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <span class="fl">Sort</span>
+        <select id="vs-key">${['Lot No.','Buyer','Quantity','Rate','Mat. Value','Bid Sheet'].map(k=>`<option value="${k}"${k===sortKey?' selected':''}>${k}</option>`).join('')}</select>
+        <select id="vs-dir"><option value="asc"${sortDir==='asc'?' selected':''}>▲ Asc</option><option value="desc"${sortDir==='desc'?' selected':''}>▼ Desc</option></select>
+      </div>`;
+    right.appendChild(hdr);
+    right.querySelector('#vs-key').addEventListener('change',e=>{sortKey=e.target.value;renderRight();});
+    right.querySelector('#vs-dir').addEventListener('change',e=>{sortDir=e.target.value;renderRight();});
+
+    const cols=[
+      {key:'Lot No.',label:'Lot No.'},
+      {key:'Buyer',label:'Buyer'},
+      {key:'Lot Name',label:'Lot Name'},
+      {key:'Quantity',label:'Qty',num:true},
+      {key:'Unit',label:'Unit'},
+      {key:'Rate',label:'Rate',num:true},
+      {key:'Mat. Value',label:'Mat. Value',num:true}
+    ];
+
+    // Re-sort with user override
+    const manualSorted=[...d].sort((a,b)=>{
+      const av=a[sortKey],bv=b[sortKey];
+      const n=typeof av==='number'&&typeof bv==='number'?av-bv:String(av).localeCompare(String(bv),'en',{numeric:true});
+      return sortDir==='asc'?n:-n;
+    });
+
+    const tw=makeTable(cols,manualSorted,{totals:true});
+    right.appendChild(tw);
+  }
+
+  renderLeft();renderRight();
+};
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+builders.dashboard();
+</script>
+</body>
+</html>
