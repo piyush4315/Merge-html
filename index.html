@@ -558,6 +558,16 @@ tbody tr.drill-target{outline:2px solid rgba(124,58,237,.55);outline-offset:-2px
               <label>Auction</label>
               <select id="auctionFilter"><option value="all">All auctions</option></select>
             </div>
+            <div>
+              <label>Settled</label>
+              <select id="settlementSort">
+                <option value="all">All lots</option>
+                <option value="settled-first">Settled first</option>
+                <option value="unsettled-first">Unsettled first</option>
+                <option value="settled">Settled only</option>
+                <option value="unsettled">Unsettled only</option>
+              </select>
+            </div>
             <div class="spacer"></div>
             <input type="text" id="search" placeholder="Search buyer, lot no, material..."/>
           </div>
@@ -2544,7 +2554,7 @@ var storage = (function () {
 })();
 
 var lots = [];
-var ui = { groupBy: 'default', auction: 'all', dashSearch: '', detailSearch: '', freezeDetailField: null };
+var ui = { groupBy: 'default', auction: 'all', settlement: 'all', dashSearch: '', detailSearch: '', freezeDetailField: null };
 var selectedGroup = null;
 var sortState = { table: 'pivot', key: null, dir: -1 };
 var view = 'dashboard';
@@ -2742,7 +2752,7 @@ function saveState() {
     customCols: customCols,
     colLayout: colLayout,
     gdriveClientId: gdriveClientId,
-    ui: { groupBy: ui.groupBy, auction: ui.auction, dashSearch: ui.dashSearch, detailSearch: ui.detailSearch, freezeDetailField: ui.freezeDetailField }
+    ui: { groupBy: ui.groupBy, auction: ui.auction, settlement: ui.settlement, dashSearch: ui.dashSearch, detailSearch: ui.detailSearch, freezeDetailField: ui.freezeDetailField }
   }));
   lastSaved = new Date();
   updateSaveIndicator();
@@ -2777,6 +2787,7 @@ function loadState() {
     if (data.ui) {
       ui.groupBy = data.ui.groupBy || 'buyer';
       ui.auction = data.ui.auction || 'all';
+      ui.settlement = data.ui.settlement || 'all';
       ui.dashSearch = data.ui.dashSearch || '';
       ui.detailSearch = data.ui.detailSearch || '';
       ui.freezeDetailField = data.ui.freezeDetailField || null;
@@ -2843,14 +2854,25 @@ function confirmModal(title, msg, yesLabel, onYes, danger) {
 /* ---------------- filters ---------------- */
 function dashFilteredRows() {
   var q = ui.dashSearch.trim().toLowerCase();
+  var settle = ui.settlement || 'all';
   return lots.filter(function (r) {
     if (ui.auction !== 'all' && String(r.auction) !== ui.auction) return false;
+    if (settle === 'settled' && settlementStatus(r) !== 'Settled') return false;
+    if (settle === 'unsettled' && settlementStatus(r) === 'Settled') return false;
     if (q) {
       var hay = (r.buyer + ' ' + r.lot_no + ' ' + r.lot_name + ' ' + r.auction).toLowerCase();
       if (hay.indexOf(q) === -1) return false;
     }
     return true;
   });
+}
+function sortRowsBySettlement(rows, settledFirst) {
+  var a = [], b = [];
+  rows.forEach(function (r) {
+    if (settlementStatus(r) === 'Settled') a.push(r);
+    else b.push(r);
+  });
+  return settledFirst ? a.concat(b) : b.concat(a);
 }
 function detailFilteredRows() {
   var q = ui.detailSearch.trim().toLowerCase();
@@ -3125,6 +3147,8 @@ function renderPivot() {
     var dRows = rows.slice();
     if (sortState.table === 'pivot' && sortState.key) dRows = sortRows(dRows, sortState.key, sortState.dir);
     else dRows = sortRows(dRows, 'total_receivables', -1);
+    if ((ui.settlement || 'all') === 'settled-first') dRows = sortRowsBySettlement(dRows, true);
+    else if ((ui.settlement || 'all') === 'unsettled-first') dRows = sortRowsBySettlement(dRows, false);
     thead.innerHTML = '<tr>' + cols.map(function (f, i) { return thPickerHtml(f, 'pivot', i, 'pivotLot'); }).join('') + '</tr>';
     tbody.innerHTML = dRows.map(function (r) {
       var isSelected = selectedGroup && (
@@ -4661,6 +4685,8 @@ function init() {
   buildStaticUI();
   document.getElementById('groupBy').value = ui.groupBy || 'default';
   document.getElementById('auctionFilter').value = ui.auction || 'all';
+  var settleEl = document.getElementById('settlementSort');
+  if (settleEl) settleEl.value = ui.settlement || 'all';
   document.getElementById('search').value = ui.dashSearch || '';
   document.getElementById('detailSearch').value = ui.detailSearch || '';
 
@@ -4673,6 +4699,8 @@ function init() {
     renderAll(); saveState();
   });
   document.getElementById('auctionFilter').addEventListener('change', function (e) { ui.auction = e.target.value; renderAll(); saveState(); });
+  var settleSel = document.getElementById('settlementSort');
+  if (settleSel) settleSel.addEventListener('change', function (e) { ui.settlement = e.target.value; renderAll(); saveState(); });
   document.getElementById('search').addEventListener('input', function (e) { ui.dashSearch = e.target.value; renderCards(); renderPivot(); saveState(); });
   document.getElementById('detailSearch').addEventListener('input', function (e) { ui.detailSearch = e.target.value; renderDetail(); saveState(); });
   document.getElementById('clearDetail').addEventListener('click', function () {
