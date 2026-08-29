@@ -546,7 +546,7 @@ tbody tr.drill-target{outline:2px solid rgba(124,58,237,.55);outline-offset:-2px
           <div class="controls" style="margin-bottom:14px">
             <div>
               <label>Group by</label>
-              <select id="groupBy">
+              <select id="groupBy" class="ctrl-groupBy">
                 <option value="default" selected>Default — Cash Receivables (lot-wise)</option>
                 <option value="buyer">Buyer</option>
                 <option value="auction">Auction</option>
@@ -556,11 +556,11 @@ tbody tr.drill-target{outline:2px solid rgba(124,58,237,.55);outline-offset:-2px
             </div>
             <div>
               <label>Auction</label>
-              <select id="auctionFilter"><option value="all">All auctions</option></select>
+              <select id="auctionFilter" class="ctrl-auction"><option value="all">All auctions</option></select>
             </div>
             <div>
               <label>Settled</label>
-              <select id="settlementSort">
+              <select id="settlementSort" class="ctrl-settlement">
                 <option value="all">All lots</option>
                 <option value="settled-first">Settled first</option>
                 <option value="unsettled-first">Unsettled first</option>
@@ -587,6 +587,32 @@ tbody tr.drill-target{outline:2px solid rgba(124,58,237,.55);outline-offset:-2px
               <button class="btn" id="addColBtnDash" type="button">+ Add column</button>
               <button class="btn primary" id="addLotBtnDash" type="button">+ Add row</button>
               <button class="btn" id="clearFilterDash" type="button">Clear selection</button>
+            </div>
+          </div>
+          <div class="controls lot-filter-bar" style="margin:8px 0 12px">
+            <div>
+              <label>Group by</label>
+              <select class="ctrl-groupBy">
+                <option value="default">Default — Cash Receivables (lot-wise)</option>
+                <option value="buyer">Buyer</option>
+                <option value="auction">Auction</option>
+                <option value="lot_name">Material type</option>
+                <option value="unit">Unit</option>
+              </select>
+            </div>
+            <div>
+              <label>Auction</label>
+              <select class="ctrl-auction"><option value="all">All auctions</option></select>
+            </div>
+            <div>
+              <label>Settled</label>
+              <select class="ctrl-settlement">
+                <option value="all">All lots</option>
+                <option value="settled-first">Settled first</option>
+                <option value="unsettled-first">Unsettled first</option>
+                <option value="settled">Settled only</option>
+                <option value="unsettled">Unsettled only</option>
+              </select>
             </div>
           </div>
           <div class="col-toggles" id="dashColToggles"></div>
@@ -617,6 +643,32 @@ tbody tr.drill-target{outline:2px solid rgba(124,58,237,.55);outline-offset:-2px
             <button class="btn" id="clearDetail">Clear filters</button>
             <button class="btn primary" id="addLotBtn">+ Add row</button>
           </h2>
+                    <div class="controls lot-filter-bar" style="margin:8px 0 12px">
+            <div>
+              <label>Group by</label>
+              <select class="ctrl-groupBy">
+                <option value="default">Default — Cash Receivables (lot-wise)</option>
+                <option value="buyer">Buyer</option>
+                <option value="auction">Auction</option>
+                <option value="lot_name">Material type</option>
+                <option value="unit">Unit</option>
+              </select>
+            </div>
+            <div>
+              <label>Auction</label>
+              <select class="ctrl-auction"><option value="all">All auctions</option></select>
+            </div>
+            <div>
+              <label>Settled</label>
+              <select class="ctrl-settlement">
+                <option value="all">All lots</option>
+                <option value="settled-first">Settled first</option>
+                <option value="unsettled-first">Unsettled first</option>
+                <option value="settled">Settled only</option>
+                <option value="unsettled">Unsettled only</option>
+              </select>
+            </div>
+          </div>
           <div id="lotQuickToggles" class="controls" style="margin:8px 0;gap:6px;flex-wrap:wrap"></div>
           <p class="hint">
             Editable: <b>GST TDS Rate · GST TDS · SD Expected · SD Received · SD Date · FP Expected · FP Received · FP Date</b> — GST is display-only.
@@ -2876,8 +2928,12 @@ function sortRowsBySettlement(rows, settledFirst) {
 }
 function detailFilteredRows() {
   var q = ui.detailSearch.trim().toLowerCase();
+  var settle = ui.settlement || 'all';
   var rows = lots.slice();
   if (selectedGroup) rows = rows.filter(function (r) { return String(r[selectedGroup.groupKey]) === selectedGroup.value; });
+  if (ui.auction !== 'all') rows = rows.filter(function (r) { return String(r.auction) === ui.auction; });
+  if (settle === 'settled') rows = rows.filter(function (r) { return settlementStatus(r) === 'Settled'; });
+  if (settle === 'unsettled') rows = rows.filter(function (r) { return settlementStatus(r) !== 'Settled'; });
   if (q) rows = rows.filter(function (r) {
     var hay = (r.buyer + ' ' + r.lot_no + ' ' + r.lot_name + ' ' + r.auction).toLowerCase();
     return hay.indexOf(q) !== -1;
@@ -3366,6 +3422,8 @@ function renderDetail() {
   var rows = detailFilteredRows();
   if (sortState.table === 'detail' && sortState.key) rows = sortRows(rows, sortState.key, sortState.dir);
   else rows = sortRows(rows, 'total_receivables', -1);
+  if ((ui.settlement || 'all') === 'settled-first') rows = sortRowsBySettlement(rows, true);
+  else if ((ui.settlement || 'all') === 'unsettled-first') rows = sortRowsBySettlement(rows, false);
   detailRows = rows;
   renderDetailInto('detailTable', 'detailCount');
   renderDetailInto('detailTableDash', 'detailCountDash');
@@ -4265,18 +4323,21 @@ function applyImport(imported, mode) {
   afterStateChange(mode === 'replace' ? 'Data replaced with imported file' : 'Data merged');
 }
 function rebuildAuctionOptions() {
-  var af = document.getElementById('auctionFilter');
   var aucs = Array.from(new Set(lots.map(function (r) { return r.auction; }))).filter(Boolean).sort(function (a, b) { return a - b; });
   var cur = ui.auction;
-  af.innerHTML = '<option value="all">All auctions</option>';
-  aucs.forEach(function (a) {
-    var o = document.createElement('option');
-    o.value = String(a); o.textContent = 'Auction ' + a;
-    af.appendChild(o);
-  });
-  if (cur !== 'all' && aucs.indexOf(numOr(cur)) === -1) { cur = 'all'; }
+  if (cur !== 'all' && aucs.indexOf(numOr(cur)) === -1) cur = 'all';
   ui.auction = cur;
-  af.value = cur;
+  var html = '<option value="all">All auctions</option>';
+  aucs.forEach(function (a) { html += '<option value="' + a + '">Auction ' + a + '</option>'; });
+  document.querySelectorAll('.ctrl-auction').forEach(function (af) {
+    af.innerHTML = html;
+    af.value = cur;
+  });
+}
+function syncFilterControls() {
+  document.querySelectorAll('.ctrl-groupBy').forEach(function (el) { el.value = ui.groupBy || 'default'; });
+  document.querySelectorAll('.ctrl-auction').forEach(function (el) { el.value = ui.auction || 'all'; });
+  document.querySelectorAll('.ctrl-settlement').forEach(function (el) { el.value = ui.settlement || 'all'; });
 }
 function afterStateChange(msg) {
   rebuildAuctionOptions();
@@ -4621,13 +4682,7 @@ function saveLotForm() {
 
 /* ---------------- init ---------------- */
 function buildStaticUI() {
-  var aucs = Array.from(new Set(lots.map(function (r) { return r.auction; }))).filter(Boolean).sort(function (a, b) { return a - b; });
-  var af = document.getElementById('auctionFilter');
-  aucs.forEach(function (a) {
-    var o = document.createElement('option');
-    o.value = String(a); o.textContent = 'Auction ' + a;
-    af.appendChild(o);
-  });
+  rebuildAuctionOptions();
   var menu = document.getElementById('exportMenu');
   menu.innerHTML = EXPORT_SPECS.map(function (s) {
     var chip = s.chip || s.label.toUpperCase().slice(0, 4);
@@ -4664,6 +4719,7 @@ function renderLotQuickToggles() {
   });
 }
 function renderAll() {
+  syncFilterControls();
   renderCards();
   renderLotQuickToggles();
   renderPivot();
@@ -4693,14 +4749,19 @@ function init() {
   document.querySelectorAll('.nav-btn').forEach(function (b) {
     b.addEventListener('click', function () { setView(b.dataset.view); });
   });
-  document.getElementById('groupBy').addEventListener('change', function (e) {
-    ui.groupBy = e.target.value; selectedGroup = null;
-    sortState = { table: 'pivot', key: null, dir: -1 };
-    renderAll(); saveState();
+  document.querySelectorAll('.ctrl-groupBy').forEach(function (el) {
+    el.addEventListener('change', function (e) {
+      ui.groupBy = e.target.value; selectedGroup = null;
+      sortState = { table: 'pivot', key: null, dir: -1 };
+      renderAll(); saveState();
+    });
   });
-  document.getElementById('auctionFilter').addEventListener('change', function (e) { ui.auction = e.target.value; renderAll(); saveState(); });
-  var settleSel = document.getElementById('settlementSort');
-  if (settleSel) settleSel.addEventListener('change', function (e) { ui.settlement = e.target.value; renderAll(); saveState(); });
+  document.querySelectorAll('.ctrl-auction').forEach(function (el) {
+    el.addEventListener('change', function (e) { ui.auction = e.target.value; renderAll(); saveState(); });
+  });
+  document.querySelectorAll('.ctrl-settlement').forEach(function (el) {
+    el.addEventListener('change', function (e) { ui.settlement = e.target.value; renderAll(); saveState(); });
+  });
   document.getElementById('search').addEventListener('input', function (e) { ui.dashSearch = e.target.value; renderCards(); renderPivot(); saveState(); });
   document.getElementById('detailSearch').addEventListener('input', function (e) { ui.detailSearch = e.target.value; renderDetail(); saveState(); });
   document.getElementById('clearDetail').addEventListener('click', function () {
