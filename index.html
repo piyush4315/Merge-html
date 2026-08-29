@@ -201,14 +201,38 @@ tbody td{padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.025);text-a
 tbody tr{transition:background .12s,color .18s}
 tbody tr:hover{background:rgba(0,245,255,.025)}
 tbody tr.selected{background:rgba(124,58,237,.08)}
-tbody tr:not(.settled) td,tbody tr:not(.settled) td.left,tbody tr:not(.settled) td.strong,tbody tr:not(.settled) td.pos,tbody tr:not(.settled) td.neg,tbody tr:not(.settled) td.zero,tbody tr:not(.settled) td.date{
+tbody tr:not(.settled) td,
+tbody tr:not(.settled) td.left,
+tbody tr:not(.settled) td.strong,
+tbody tr:not(.settled) td.pos,
+tbody tr:not(.settled) td.neg,
+tbody tr:not(.settled) td.zero,
+tbody tr:not(.settled) td.date,
+tbody tr:not(.settled) td.status,
+tbody tr:not(.settled) td.edit,
+tbody tr:not(.settled) td *,
+tbody tr:not(.settled) td input,
+tbody tr:not(.settled) td button,
+tbody tr:not(.settled) td .inv-link,
+tbody tr:not(.settled) td .inv-link.empty,
+tbody tr:not(.settled) td .lbl-settled,
+tbody tr:not(.settled) td .lbl-unsettled,
+tbody tr:not(.settled) td .rowedit,
+tbody tr:not(.settled) td .rowdel{
   color:#fff!important;
+  -webkit-text-fill-color:#fff;
+  caret-color:#fff;
   font-size:inherit!important;
   font-weight:inherit;
   letter-spacing:inherit;
   text-shadow:0 0 4px rgba(57,255,20,.4);
 }
-tbody tr:not(.settled) td.edit input{color:#fff;font-size:inherit;text-shadow:0 0 4px rgba(57,255,20,.35)}
+tbody tr:not(.settled) td .lbl-settled,
+tbody tr:not(.settled) td .lbl-unsettled{
+  background:transparent;
+  box-shadow:none;
+  border:0;
+}
 tbody tr.settled td,tbody tr.settled td.left,tbody tr.settled td.strong,tbody tr.settled td.pos,tbody tr.settled td.neg,tbody tr.settled td.zero,tbody tr.settled td.date{
   color:#86efac!important;
   font-size:inherit!important;
