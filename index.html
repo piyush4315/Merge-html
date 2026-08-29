@@ -206,6 +206,13 @@ td.strong{font-weight:700;color:var(--cyan);font-family:'JetBrains Mono',monospa
 td.pos{color:#f9a8d4;font-weight:600}
 td.neg{color:#86efac;font-weight:600}
 td.zero{color:var(--dim)}
+td.status{text-align:center}
+.lbl-settled,.lbl-unsettled{
+  display:inline-block;min-width:96px;text-align:center;font-size:10px;font-weight:800;
+  letter-spacing:.7px;text-transform:uppercase;border-radius:999px;padding:4px 12px;line-height:1.2
+}
+.lbl-settled{background:#4ade80;color:#052e16;box-shadow:0 0 12px rgba(74,222,128,.35)}
+.lbl-unsettled{background:#f72585;color:#fff;box-shadow:0 0 12px rgba(247,37,133,.35)}
 td.date{text-align:center;color:var(--dim);font-size:11px}
 tfoot td{
   font-weight:700;border-top:1px solid rgba(0,245,255,.12);background:rgba(0,245,255,.03);
@@ -792,6 +799,7 @@ function normalizeLot(raw) {
   r.total_received = has('total_received') ? N('total_received') : (r.sd_received + r.fp_received);
   r.outstanding = has('outstanding') ? N('outstanding') : (r.total_receivables - r.total_received);
   r.short_excess_payment = has('short_excess_payment') ? N('short_excess_payment') : r.outstanding;
+  r.settlement_status = settlementStatus(r);
   r.sap_document_date = D('sap_document_date');
   r.doc_invoice_date = D('doc_invoice_date');
   var m = raw.manual || {};
@@ -831,6 +839,15 @@ function recalcRow(r, changed) {
   r.total_received = n('sd_received') + n('fp_received');
   r.outstanding = n('total_receivables') - r.total_received;
   r.short_excess_payment = r.outstanding;
+  r.settlement_status = settlementStatus(r);
+}
+function settlementStatus(r) {
+  var n = numOr(r && (r.short_excess_payment !== undefined && r.short_excess_payment !== null ? r.short_excess_payment : r.outstanding));
+  return Math.abs(n) <= 1 ? 'Settled' : 'Unsettled';
+}
+function settlementLabelHtml(r) {
+  var st = settlementStatus(r);
+  return '<span class="' + (st === 'Settled' ? 'lbl-settled' : 'lbl-unsettled') + '">' + st + '</span>';
 }
 function cloneLot(r) { var o = {}; for (var k in r) o[k] = r[k]; return o; }
 
@@ -1058,6 +1075,7 @@ var XLSX_COLS = [
   ['fp_received', 'Final Payment (Received)', 'n'],
   ['fp_date', 'Date of Receipt', 's'],
   ['short_excess_payment', 'Short/(Excess) Payment', 'f:+S{r}-U{r}-X{r}'],
+  ['settlement_status', 'Settled / Unsettled', 'f:IF(ABS(Z{r})<=1,"Settled","Unsettled")'],
   ['invoice_no', 'Invoice No. ', 's'],
   ['sap_document_date', 'SAP Document', 's'],
   ['doc_invoice_date', 'Doc./Invoice Date', 's']
@@ -1148,6 +1166,10 @@ function buildDataSheetXml(lots, customCols) {
       }
       if (kind.indexOf('f:') === 0) {
         var f = kind.slice(2).replace(/\{r\}/g, rowN);
+        if (field === 'settlement_status') {
+          var st = settlementStatus(r);
+          return '<c r="' + ref + '" t="str" s="' + (st === 'Settled' ? '18' : '19') + '"><f>' + escXml(f) + '</f><v>' + escXml(st) + '</v></c>';
+        }
         return cellFormula(ref, f, r[field], xlsxStyleFor(field, kind, false));
       }
       var nv = r[field];
@@ -1186,7 +1208,8 @@ function buildDataSheetXml(lots, customCols) {
     '<col min="17" max="18" width="10"/>' +
     '<col min="19" max="19" width="14"/>' +
     '<col min="20" max="26" width="12"/>' +
-    '<col min="27" max="29" width="14"/>' +
+    '<col min="27" max="27" width="16"/>' +
+    '<col min="28" max="30" width="14"/>' +
     '</cols>';
   var filterEnd = lots.length ? lastData : 3;
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
@@ -1201,6 +1224,10 @@ function buildDataSheetXml(lots, customCols) {
       '<conditionalFormatting sqref="Z' + firstData + ':Z' + lastData + '">' +
         '<cfRule type="cellIs" dxfId="0" priority="1" operator="greaterThan"><formula>0</formula></cfRule>' +
         '<cfRule type="cellIs" dxfId="1" priority="2" operator="lessThan"><formula>0</formula></cfRule>' +
+      '</conditionalFormatting>' +
+      '<conditionalFormatting sqref="AA' + firstData + ':AA' + lastData + '">' +
+        '<cfRule type="containsText" dxfId="2" priority="3" operator="containsText"><formula>NOT(ISERROR(SEARCH("Settled",AA' + firstData + ')))</formula><text>Settled</text></cfRule>' +
+        '<cfRule type="containsText" dxfId="3" priority="4" operator="containsText"><formula>NOT(ISERROR(SEARCH("Unsettled",AA' + firstData + ')))</formula><text>Unsettled</text></cfRule>' +
       '</conditionalFormatting>'
     ) : '') +
     '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
@@ -1258,7 +1285,7 @@ function buildWorkingSheetXml(lots) {
   var lastData = lots.length ? firstData + lots.length - 1 : 7;
   var tRow = lastData + 1;
   var title = bidSheetTitle(lots);
-  var heads = ['Lot No.', 'Buyer', 'Mat. Value', 'GST TDS', 'Total Receivables in Cash', 'Security Deposit (Expected)', 'Security Deposit (Received)', 'Date of Receipt', 'Final Payment (Expected)', 'Final Payment (Received)', 'Date of Receipt', 'Short/(Excess) Payment'];
+  var heads = ['Lot No.', 'Buyer', 'Mat. Value', 'GST TDS', 'Total Receivables in Cash', 'Security Deposit (Expected)', 'Security Deposit (Received)', 'Date of Receipt', 'Final Payment (Expected)', 'Final Payment (Received)', 'Date of Receipt', 'Short/(Excess) Payment', 'Settled / Unsettled'];
   var rows = [];
   rows.push('<row r="1">' + cellInline('A1', title, 6) + '</row>');
   rows.push('<row r="3" ht="36" customHeight="1">' + heads.map(function (h, i) {
@@ -1287,7 +1314,11 @@ function buildWorkingSheetXml(lots) {
       cellFormula('I' + n, 'ROUND(C' + n + '*92.65%-D' + n + ',0)', r.fp_expected, 12) +
       (r.fp_received === null || r.fp_received === undefined || r.fp_received === '' ? '<c r="J' + n + '" s="11"/>' : cellNum('J' + n, r.fp_received, 11)) +
       (r.fp_date ? cellInline('K' + n, r.fp_date, 9) : '<c r="K' + n + '" s="9"/>') +
-      cellFormula('L' + n, 'E' + n + '-G' + n + '-J' + n, r.short_excess_payment, 13);
+      cellFormula('L' + n, 'E' + n + '-G' + n + '-J' + n, r.short_excess_payment, 13) +
+      (function () {
+        var st = settlementStatus(r);
+        return '<c r="M' + n + '" t="str" s="' + (st === 'Settled' ? '18' : '19') + '"><f>IF(ABS(L' + n + ')&lt;=1,"Settled","Unsettled")</f><v>' + escXml(st) + '</v></c>';
+      })();
     rows.push('<row r="' + n + '">' + cells + '</row>');
   });
   if (lots.length) {
@@ -1306,12 +1337,12 @@ function buildWorkingSheetXml(lots) {
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
     '<sheetPr><tabColor rgb="FF0B1F4B"/></sheetPr>' +
-    '<dimension ref="A1:L' + tRow + '"/>' +
+    '<dimension ref="A1:M' + tRow + '"/>' +
     '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
     '<sheetFormatPr defaultRowHeight="16"/>' +
     '<cols><col min="1" max="1" width="10"/><col min="2" max="2" width="28"/><col min="3" max="12" width="14"/></cols>' +
     '<sheetData>' + rows.join('') + '</sheetData>' +
-    (lots.length ? '<autoFilter ref="A3:L' + lastData + '"/>' : '') +
+    (lots.length ? '<autoFilter ref="A3:M' + lastData + '"/>' : '') +
     '</worksheet>';
 }
 
@@ -1692,13 +1723,15 @@ function buildXlsx(lots, customCols) {
         '<font><b/><sz val="14"/><name val="Arial"/><color rgb="FF002FA7"/></font>' +
         '<font><b/><sz val="10"/><name val="Arial"/><color rgb="FF0F172A"/></font>' +
       '</fonts>' +
-      '<fills count="6">' +
+      '<fills count="8">' +
         '<fill><patternFill patternType="none"/></fill>' +
         '<fill><patternFill patternType="gray125"/></fill>' +
         '<fill><patternFill patternType="solid"><fgColor rgb="FF002FA7"/><bgColor indexed="64"/></patternFill></fill>' +
         '<fill><patternFill patternType="solid"><fgColor rgb="FFE8F1FE"/><bgColor indexed="64"/></patternFill></fill>' +
         '<fill><patternFill patternType="solid"><fgColor rgb="FFFFF4D6"/><bgColor indexed="64"/></patternFill></fill>' +
         '<fill><patternFill patternType="solid"><fgColor rgb="FF0B1F4B"/><bgColor indexed="64"/></patternFill></fill>' +
+        '<fill><patternFill patternType="solid"><fgColor rgb="FF4ADE80"/><bgColor indexed="64"/></patternFill></fill>' +
+        '<fill><patternFill patternType="solid"><fgColor rgb="FFF72585"/><bgColor indexed="64"/></patternFill></fill>' +
       '</fills>' +
       '<borders count="2">' +
         '<border><left/><right/><top/><bottom/><diagonal/></border>' +
@@ -1711,7 +1744,7 @@ function buildXlsx(lots, customCols) {
         '</border>' +
       '</borders>' +
       '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-      '<cellXfs count="18">' +
+      '<cellXfs count="20">' +
         '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>' +
         '<xf numFmtId="0" fontId="1" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1"/>' +
         '<xf numFmtId="165" fontId="0" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1"/>' +
@@ -1730,11 +1763,15 @@ function buildXlsx(lots, customCols) {
         '<xf numFmtId="165" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyNumberFormat="1" applyFill="1" applyBorder="1"/>' +
         '<xf numFmtId="0" fontId="2" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>' +
         '<xf numFmtId="165" fontId="2" fillId="5" borderId="1" xfId="0" applyFont="1" applyNumberFormat="1" applyFill="1" applyBorder="1"/>' +
+        '<xf numFmtId="0" fontId="1" fillId="6" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
+        '<xf numFmtId="0" fontId="2" fillId="7" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>' +
       '</cellXfs>' +
       '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
-      '<dxfs count="2">' +
+      '<dxfs count="4">' +
         '<dxf><font><b/><color rgb="FFB91C1C"/></font></dxf>' +
         '<dxf><font><b/><color rgb="FF15803D"/></font></dxf>' +
+        '<dxf><font><b/><color rgb="FF14532D"/></font><fill><patternFill patternType="solid"><fgColor rgb="FF4ADE80"/><bgColor rgb="FF4ADE80"/></patternFill></fill></dxf>' +
+        '<dxf><font><b/><color rgb="FFFFFFFF"/></font><fill><patternFill patternType="solid"><fgColor rgb="FFF72585"/><bgColor rgb="FFF72585"/></patternFill></fill></dxf>' +
       '</dxfs>' +
       '<tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>' +
       '</styleSheet>'),
@@ -1879,6 +1916,7 @@ var HEADER_ALIASES = {
   'fp received': 'fp_received', 'final payment received': 'fp_received', 'final payment (received)': 'fp_received', 'balance received': 'fp_received',
   'fp date': 'fp_date', 'final payment date': 'fp_date', 'balance date': 'fp_date',
   'short/(excess) payment': 'short_excess_payment', 'short excess payment': 'short_excess_payment',
+  'settled / unsettled': 'settlement_status', 'settled/unsettled': 'settlement_status', 'settlement status': 'settlement_status',
   'sap document date': 'sap_document_date', 'sap document': 'sap_document_date', 'doc./invoice date': 'doc_invoice_date', 'doc/invoice date': 'doc_invoice_date',
   'date of receipt': 'sd_date',
   'total received': 'total_received', 'received': 'total_received',
@@ -1964,7 +2002,7 @@ var EXPORT_COLS = [
   ['gst_tds_rate', 'GST TDS Rate'], ['gst_tds', 'GST TDS'], ['total_receivables', 'Total Receivables in Cash'],
   ['sd_expected', 'Security Deposit (Expected)'], ['sd_received', 'Security Deposit (Received)'], ['sd_date', 'SD Date'],
   ['fp_expected', 'Final Payment (Expected)'], ['fp_received', 'Final Payment (Received)'], ['fp_date', 'FP Date'],
-  ['short_excess_payment', 'Short/(Excess) Payment'], ['invoice_no', 'Invoice No.'],
+  ['short_excess_payment', 'Short/(Excess) Payment'], ['settlement_status', 'Settled / Unsettled'], ['invoice_no', 'Invoice No.'],
   ['sap_document_date', 'SAP Document Date'], ['doc_invoice_date', 'Doc./Invoice Date'],
   ['total_received', 'Total Received'], ['outstanding', 'Outstanding'], ['invoice_link', 'Invoice Link']
 ];
@@ -2180,7 +2218,7 @@ function htmlExport(lots, customCols) {
     var cells = EXPORT_COLS.map(function (c) {
       var f = c[0], v = r[f];
       var cls = 'num';
-      if (f === 'buyer' || f === 'lot_name' || f === 'unit' || f === 'invoice_no' || f === 'sap_document_date') cls = 'txt';
+      if (f === 'buyer' || f === 'lot_name' || f === 'unit' || f === 'invoice_no' || f === 'sap_document_date' || f === 'settlement_status') cls = 'txt';
       if (f === 'sd_date' || f === 'fp_date' || f === 'doc_invoice_date') cls = 'dt';
       if (f === 'total_receivables' || f === 'total_received') cls += ' strong';
       if (f === 'outstanding') cls += ' ' + (numOr(v) > 1 ? 'pos' : (numOr(v) < -1 ? 'neg' : 'zero'));
@@ -2507,7 +2545,7 @@ var gdriveClientId = '';
 var gdriveToken = null;
 var pendingImportCustom = [];
 /* Detail columns follow Final Calculation Sheet order, then app-only receipt totals/actions. */
-var DEFAULT_DETAIL_KEYS = ['qty','lot_name','rate','auction','unit','lot_no','buyer','mat_value','gst','mat_value_plus_gst','tcs','tds194o','service_charge_mstc','tds194h','net_service_charge','service_charge_to_mstc','gst_tds_rate','gst_tds','total_receivables','sd_expected','sd_received','sd_date','fp_expected','fp_received','fp_date','short_excess_payment','invoice_no','sap_document_date','doc_invoice_date','total_received','outstanding','invoice_link'];
+var DEFAULT_DETAIL_KEYS = ['qty','lot_name','rate','auction','unit','lot_no','buyer','mat_value','gst','mat_value_plus_gst','tcs','tds194o','service_charge_mstc','tds194h','net_service_charge','service_charge_to_mstc','gst_tds_rate','gst_tds','total_receivables','sd_expected','sd_received','sd_date','fp_expected','fp_received','fp_date','short_excess_payment','settlement_status','invoice_no','sap_document_date','doc_invoice_date','total_received','outstanding','invoice_link'];
 /* Invoice No. is intentionally available only in Lot Details, not Pivot Analytics. */
 var DEFAULT_PIVOT_LOT_KEYS = ['lot_no','buyer','total_receivables','sd_expected','sd_received','sd_date','fp_expected','fp_received','fp_date','outstanding'];
 var DEFAULT_PIVOT_METRIC_KEYS = ['lots','mat_value','gst','tcs','total_receivables','sd_expected','sd_received','fp_expected','fp_received','total_received','outstanding'];
@@ -2531,6 +2569,11 @@ function ensureGstTdsRateColumn() {
   /* Invoice No. must remain available in Lot Details, but never appear in Pivot Analytics. */
   if (colLayout.pivotLot) {
     colLayout.pivotLot = colLayout.pivotLot.filter(function (key) { return key !== 'invoice_no'; });
+  }
+  if (colLayout.detail.indexOf('settlement_status') === -1) {
+    var si = colLayout.detail.indexOf('short_excess_payment');
+    if (si >= 0) colLayout.detail.splice(si + 1, 0, 'settlement_status');
+    else colLayout.detail.push('settlement_status');
   }
 }
 
@@ -2903,6 +2946,7 @@ var FIELD_META = {
   fp_received: { label: 'Final Payment (Received)', kind: 'edit', sum: true, edit: true },
   fp_date: { label: 'FP Date', kind: 'date-edit', sum: false, edit: true },
   short_excess_payment: { label: 'Short/(Excess) Payment', kind: '', sum: true },
+  settlement_status: { label: 'Settled / Unsettled', kind: 'status', sum: false },
   invoice_no: { label: 'Invoice No.', kind: 'left', sum: false },
   sap_document_date: { label: 'SAP Document Date', kind: 'left', sum: false },
   doc_invoice_date: { label: 'Doc./Invoice Date', kind: 'date', sum: false },
@@ -3030,6 +3074,7 @@ function formatCellValue(r, key) {
   var v = getLotField(r, key);
   var kind = fieldKind(key);
   if (kind === 'date' || kind === 'date-edit') return v ? escHtml(v) : '—';
+  if (key === 'settlement_status' || kind === 'status') return settlementLabelHtml(r);
   if (kind === 'left' || kind === 'edit-text') return escHtml(v === null || v === undefined ? '' : v);
   if (typeof v === 'number' || (v !== '' && v !== null && v !== undefined && isFiniteNum(Number(v)) && !isCustomField(key))) {
     var n = typeof v === 'number' ? v : Number(v);
@@ -3047,7 +3092,7 @@ function formatCellValue(r, key) {
 }
 function cellClassFor(key, v) {
   var kind = fieldKind(key);
-  var cls = (kind === 'left' || kind === 'edit-text') ? 'left' : (kind === 'strong' ? 'strong' : (kind === 'date' || kind === 'date-edit' ? 'date' : ''));
+  var cls = (kind === 'left' || kind === 'edit-text') ? 'left' : (kind === 'strong' ? 'strong' : (kind === 'date' || kind === 'date-edit' ? 'date' : (kind === 'status' ? 'status' : '')));
   if (key === 'outstanding') cls += ' ' + ((v || 0) > 1 ? 'pos' : ((v || 0) < -1 ? 'neg' : 'zero'));
   return cls;
 }
@@ -3079,6 +3124,7 @@ function renderPivot() {
       var li = lots.indexOf(r);
       return '<tr class="' + (isSelected ? 'selected' : '') + '" data-lotno="' + escHtml(r.lot_no) + '" data-lot="' + li + '">' + cols.map(function (f) {
         var v = getLotField(r, f);
+        if (f === 'settlement_status') return '<td class="status">' + settlementLabelHtml(r) + '</td>';
         if (f === 'invoice_no') return '<td class="left">' + invoiceCellHtml(r) + '</td>';
         return '<td class="' + cellClassFor(f, v) + '">' + formatCellValue(r, f) + '</td>';
       }).join('') + '</tr>';
@@ -3197,6 +3243,7 @@ var DETAIL_COLS = [
   ['fp_received', 'Final Payment (Received)', 'edit'],
   ['fp_date', 'FP Date', 'date-edit'],
   ['short_excess_payment', 'Short/(Excess) Payment', ''],
+  ['settlement_status', 'Settled / Unsettled', 'status'],
   ['invoice_no', 'Invoice No.', 'left'],
   ['sap_document_date', 'SAP Document Date', 'left'],
   ['doc_invoice_date', 'Doc./Invoice Date', 'date'],
@@ -3246,6 +3293,7 @@ function renderDetailInto(tableId, countId) {
       if (kind === 'edit-text' || (isCustomField(f) && (!customColById(f) || customColById(f).type === 'text'))) {
         return '<td class="edit" data-field="' + escHtml(f) + '"><input type="text" value="' + escHtml(v === null || v === undefined ? '' : v) + '" data-lot="' + li + '" data-field="' + escHtml(f) + '" style="text-align:left"/></td>';
       }
+      if (f === 'settlement_status') return '<td class="status" data-field="settlement_status">' + settlementLabelHtml(r) + '</td>';
       if (f === 'invoice_no') return '<td class="left" data-field="invoice_no">' + invoiceCellHtml(r) + '</td>';
       return '<td class="' + cellClassFor(f, v) + '" data-field="' + escHtml(f) + '">' + formatCellValue(r, f) + '</td>';
     }).join('') + '<td class="row-actions"><button type="button" class="rowedit" data-lot="' + li + '" title="Edit entire row">✎</button><button type="button" class="rowdel" data-lot="' + li + '" title="Delete lot">✕</button></td></tr>';
@@ -3525,13 +3573,18 @@ function refreshDerivedDOM(lotIdx) {
         td.classList.add('flash');
       }
     });
-    ['total_receivables', 'fp_expected', 'total_received', 'outstanding'].forEach(function (f) {
+    ['total_receivables', 'fp_expected', 'total_received', 'outstanding', 'short_excess_payment', 'settlement_status'].forEach(function (f) {
       var td = tr.querySelector('td[data-field="' + f + '"]');
       if (!td || td.querySelector('input')) return;
       var v = r[f];
-      td.textContent = inr(v, Number.isInteger(v) ? 0 : 2);
-      var base = f === 'total_receivables' || f === 'total_received' ? 'strong' : (f === 'outstanding' ? (v > 1 ? 'pos' : (v < -1 ? 'neg' : 'zero')) : '');
-      td.className = base;
+      if (f === 'settlement_status') {
+        td.innerHTML = settlementLabelHtml(r);
+        td.className = 'status';
+      } else {
+        td.textContent = inr(v, Number.isInteger(v) ? 0 : 2);
+        var base = f === 'total_receivables' || f === 'total_received' ? 'strong' : (f === 'outstanding' || f === 'short_excess_payment' ? (v > 1 ? 'pos' : (v < -1 ? 'neg' : 'zero')) : '');
+        td.className = base;
+      }
       td.classList.remove('flash');
       void td.offsetWidth;
       td.classList.add('flash');
