@@ -215,7 +215,6 @@ tbody tr:not(.settled) td input,
 tbody tr:not(.settled) td button,
 tbody tr:not(.settled) td .inv-link,
 tbody tr:not(.settled) td .inv-link.empty,
-tbody tr:not(.settled) td .lbl-settled,
 tbody tr:not(.settled) td .lbl-unsettled,
 tbody tr:not(.settled) td .rowedit,
 tbody tr:not(.settled) td .rowdel{
@@ -227,11 +226,19 @@ tbody tr:not(.settled) td .rowdel{
   letter-spacing:inherit;
   text-shadow:0 0 4px rgba(57,255,20,.4);
 }
-tbody tr:not(.settled) td .lbl-settled,
 tbody tr:not(.settled) td .lbl-unsettled{
   background:transparent;
   box-shadow:none;
   border:0;
+}
+.lbl-settled,
+tbody tr.settled td .lbl-settled,
+tbody tr:not(.settled) td .lbl-settled{
+  background:#b5d99c!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff;
+  text-shadow:none;
+  box-shadow:0 0 12px rgba(181,217,156,.35);
 }
 tbody tr.settled td,tbody tr.settled td.left,tbody tr.settled td.strong,tbody tr.settled td.pos,tbody tr.settled td.neg,tbody tr.settled td.zero,tbody tr.settled td.date{
   color:#86efac!important;
