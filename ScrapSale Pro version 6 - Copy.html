@@ -201,16 +201,14 @@ tbody td{padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.025);text-a
 tbody tr{transition:background .12s,color .18s}
 tbody tr:hover{background:rgba(0,245,255,.025)}
 tbody tr.selected{background:rgba(124,58,237,.08)}
-tbody tr.settled td,tbody tr.settled td.left,tbody tr.settled td.pos,tbody tr.settled td.neg,tbody tr.settled td.zero{
+tbody tr.settled td,tbody tr.settled td.left,tbody tr.settled td.strong,tbody tr.settled td.pos,tbody tr.settled td.neg,tbody tr.settled td.zero,tbody tr.settled td.date{
   color:#86efac!important;
-  font-size:11px!important;
+  font-size:inherit!important;
   font-weight:inherit;
   letter-spacing:inherit;
-  text-shadow:0 0 3px rgba(57,255,20,.4);
+  text-shadow:0 0 4px rgba(57,255,20,.4);
 }
-tbody tr.settled td.strong{color:#86efac!important;font-size:10px!important;text-shadow:0 0 3px rgba(57,255,20,.4)}
-tbody tr.settled td.date{color:#86efac!important;font-size:10px!important;text-shadow:0 0 3px rgba(57,255,20,.4)}
-tbody tr.settled td.edit input{color:#86efac;font-size:11px;text-shadow:0 0 3px rgba(57,255,20,.35)}
+tbody tr.settled td.edit input{color:#86efac;font-size:inherit;text-shadow:0 0 4px rgba(57,255,20,.35)}
 td.left{text-align:left;font-weight:600}
 td.strong{font-weight:700;color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:11px}
 td.pos{color:#f9a8d4;font-weight:600}
