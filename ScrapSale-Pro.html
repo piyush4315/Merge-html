@@ -198,9 +198,25 @@ td.rng-anchor{outline:2px solid var(--cyan);outline-offset:-2px}
   backdrop-filter:blur(20px);box-shadow:0 6px 18px rgba(0,0,0,.35)
 }
 tbody td{padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:#cbd5e1;vertical-align:middle}
-tbody tr{transition:background .12s}
+tbody tr{transition:background .18s,box-shadow .18s}
 tbody tr:hover{background:rgba(0,245,255,.025)}
 tbody tr.selected{background:rgba(124,58,237,.08)}
+tbody tr.settled{
+  background:linear-gradient(90deg,rgba(57,255,20,.16),rgba(0,245,255,.07) 45%,rgba(57,255,20,.12));
+  box-shadow:inset 3px 0 0 #39ff14,0 0 22px rgba(57,255,20,.18);
+}
+tbody tr.settled td{color:#d8ffe0}
+tbody tr.settled:hover{
+  background:linear-gradient(90deg,rgba(57,255,20,.22),rgba(0,245,255,.1) 45%,rgba(57,255,20,.16));
+}
+tbody tr.settled.selected,tbody tr.settled.drill-target{
+  background:linear-gradient(90deg,rgba(57,255,20,.2),rgba(124,58,237,.14) 55%,rgba(57,255,20,.12));
+  box-shadow:inset 3px 0 0 #39ff14,0 0 26px rgba(57,255,20,.22);
+}
+tbody tr.settled td.frozen{background:#072414}
+tbody tr.settled:hover td.frozen,tbody tr.settled.selected td.frozen,tbody tr.settled.drill-target td.frozen{background:#0a2e1a}
+tbody tr.settled td.edit{background:rgba(57,255,20,.07)}
+tbody tr.settled td.edit:hover{background:rgba(57,255,20,.12)}
 td.left{text-align:left;font-weight:600}
 td.strong{font-weight:700;color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:11px}
 td.pos{color:#f9a8d4;font-weight:600}
@@ -3122,7 +3138,7 @@ function renderPivot() {
         (selectedGroup.groupKey === 'lot_no' && selectedGroup.value === String(r.lot_no))
       );
       var li = lots.indexOf(r);
-      return '<tr class="' + (isSelected ? 'selected' : '') + '" data-lotno="' + escHtml(r.lot_no) + '" data-lot="' + li + '">' + cols.map(function (f) {
+      return '<tr class="' + (isSelected ? 'selected' : '') + (settlementStatus(r) === 'Settled' ? ' settled' : '') + '" data-lotno="' + escHtml(r.lot_no) + '" data-lot="' + li + '">' + cols.map(function (f) {
         var v = getLotField(r, f);
         if (f === 'settlement_status') return '<td class="status">' + settlementLabelHtml(r) + '</td>';
         if (f === 'invoice_no') return '<td class="left">' + invoiceCellHtml(r) + '</td>';
@@ -3188,7 +3204,7 @@ function renderPivot() {
     '</th>' + metricKeys.map(function (f, i) { return thPickerHtml(f, 'pivot', i, 'pivotMetric'); }).join('') + '</tr>';
   tbody.innerHTML = pivotRows.map(function (r) {
     var isSelected = selectedGroup && selectedGroup.groupKey === groupKey && selectedGroup.value === r.key;
-    return '<tr class="' + (isSelected ? 'selected' : '') + '" data-group="' + groupKey + '" data-value="' + encodeURIComponent(r.key) + '">' +
+    return '<tr class="' + (isSelected ? 'selected' : '') + (Math.abs(numOr(r.outstanding)) <= 1 ? ' settled' : '') + '" data-group="' + groupKey + '" data-value="' + encodeURIComponent(r.key) + '">' +
       '<td class="left">' + escHtml(r.key) + '</td>' +
       metricKeys.map(function (f) {
         if (f === 'lots') return '<td>' + r.lots + '</td>';
@@ -3277,7 +3293,7 @@ function renderDetailInto(tableId, countId) {
   tbody.innerHTML = rows.map(function (r) {
     var li = lots.indexOf(r);
     var isHit = selectedGroup && String(r[selectedGroup.groupKey]) === selectedGroup.value;
-    return '<tr data-lot="' + li + '" class="' + (isHit ? 'selected drill-target' : '') + '">' + cols.map(function (f) {
+    return '<tr data-lot="' + li + '" class="' + (isHit ? 'selected drill-target' : '') + (settlementStatus(r) === 'Settled' ? ' settled' : '') + '">' + cols.map(function (f) {
       var v = getLotField(r, f);
       var kind = fieldKind(f);
       if (kind === 'edit' || (isCustomField(f) && customColById(f) && customColById(f).type === 'number')) {
@@ -3560,6 +3576,7 @@ function schedulePivot() {
 function refreshDerivedDOM(lotIdx) {
   var r = lots[lotIdx];
   document.querySelectorAll('table.lots-table tbody tr[data-lot="' + lotIdx + '"]').forEach(function (tr) {
+    tr.classList.toggle('settled', settlementStatus(r) === 'Settled');
     ['gst_tds_rate', 'gst_tds'].forEach(function (f) {
       var inp = tr.querySelector('input[data-field="' + f + '"]');
       if (!inp) return;
