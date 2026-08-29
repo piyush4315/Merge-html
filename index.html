@@ -198,25 +198,14 @@ td.rng-anchor{outline:2px solid var(--cyan);outline-offset:-2px}
   backdrop-filter:blur(20px);box-shadow:0 6px 18px rgba(0,0,0,.35)
 }
 tbody td{padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.025);text-align:right;color:#cbd5e1;vertical-align:middle}
-tbody tr{transition:background .18s,box-shadow .18s}
+tbody tr{transition:background .12s,color .18s}
 tbody tr:hover{background:rgba(0,245,255,.025)}
 tbody tr.selected{background:rgba(124,58,237,.08)}
-tbody tr.settled{
-  background:linear-gradient(90deg,rgba(57,255,20,.16),rgba(0,245,255,.07) 45%,rgba(57,255,20,.12));
-  box-shadow:inset 3px 0 0 #39ff14,0 0 22px rgba(57,255,20,.18);
+tbody tr.settled td,tbody tr.settled td.left,tbody tr.settled td.strong,tbody tr.settled td.pos,tbody tr.settled td.neg,tbody tr.settled td.zero,tbody tr.settled td.date{
+  color:#39ff14!important;
+  text-shadow:0 0 8px rgba(57,255,20,.55);
 }
-tbody tr.settled td{color:#d8ffe0}
-tbody tr.settled:hover{
-  background:linear-gradient(90deg,rgba(57,255,20,.22),rgba(0,245,255,.1) 45%,rgba(57,255,20,.16));
-}
-tbody tr.settled.selected,tbody tr.settled.drill-target{
-  background:linear-gradient(90deg,rgba(57,255,20,.2),rgba(124,58,237,.14) 55%,rgba(57,255,20,.12));
-  box-shadow:inset 3px 0 0 #39ff14,0 0 26px rgba(57,255,20,.22);
-}
-tbody tr.settled td.frozen{background:#072414}
-tbody tr.settled:hover td.frozen,tbody tr.settled.selected td.frozen,tbody tr.settled.drill-target td.frozen{background:#0a2e1a}
-tbody tr.settled td.edit{background:rgba(57,255,20,.07)}
-tbody tr.settled td.edit:hover{background:rgba(57,255,20,.12)}
+tbody tr.settled td.edit input{color:#39ff14}
 td.left{text-align:left;font-weight:600}
 td.strong{font-weight:700;color:var(--cyan);font-family:'JetBrains Mono',monospace;font-size:11px}
 td.pos{color:#f9a8d4;font-weight:600}
