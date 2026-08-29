@@ -225,11 +225,6 @@ tbody tr:not(.settled) td .rowdel{
   letter-spacing:inherit;
   text-shadow:0 0 4px rgba(57,255,20,.4);
 }
-tbody tr:not(.settled) td .lbl-settled{
-  background:transparent;
-  box-shadow:none;
-  border:0;
-}
 .lbl-unsettled,
 tbody tr:not(.settled) td .lbl-unsettled,
 tbody tr.settled td .lbl-unsettled{
@@ -257,7 +252,15 @@ td.status{text-align:center}
   display:inline-block;min-width:96px;text-align:center;font-size:10px;font-weight:800;
   letter-spacing:.7px;text-transform:uppercase;border-radius:999px;padding:4px 12px;line-height:1.2
 }
-.lbl-settled{background:#b5d99c;color:#fff;box-shadow:0 0 12px rgba(181,217,156,.35)}
+.lbl-settled,
+tbody tr.settled td .lbl-settled,
+tbody tr:not(.settled) td .lbl-settled{
+  background:#b5d99c!important;
+  color:#fff!important;
+  -webkit-text-fill-color:#fff;
+  text-shadow:none!important;
+  box-shadow:none!important;
+}
 .lbl-unsettled{background:#f72585;color:#fff;box-shadow:0 0 12px rgba(247,37,133,.35)}
 td.date{text-align:center;color:var(--dim);font-size:11px}
 tfoot td{
