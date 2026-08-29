@@ -1,9 +1,9 @@
 # ScrapSale Pro
 
-Published app (GitHub Pages):
+Open the published HTML app:
 
-**https://piyush4315.github.io/Merge-html/**
+**https://htmlpreview.github.io/?https://github.com/piyush4315/Merge-html/blob/arena/01a04caa-merge-html/index.html**
 
-Direct file:
+GitHub file:
 
-**https://piyush4315.github.io/Merge-html/ScrapSale-Pro.html**
+**https://github.com/piyush4315/Merge-html/blob/arena/01a04caa-merge-html/ScrapSale-Pro.html**
