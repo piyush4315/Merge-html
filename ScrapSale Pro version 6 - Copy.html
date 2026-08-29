@@ -611,7 +611,7 @@ tbody tr.drill-target{outline:2px solid rgba(124,58,237,.55);outline-offset:-2px
               <input type="checkbox" id="exportFiltered"/> Export only rows matching Dashboard filters
             </label>
             <div class="export-grid" id="exportGrid"></div>
-            <p class="hint">Excel files contain <b>live formulas</b>, an Excel Table (<b>CashReceivables</b>), a <b>Pivot Analytics</b> sheet (live SUMIF by Buyer / Auction / Material / Unit), and a <b>Power BI</b> sheet with DAX measures and dimension tables. Re-import the same .xlsx from Import — Lot No + Buyer is auto-detected. <b>Google Drive</b> can upload the file after a one-time Google sign-in.</p>
+            <p class="hint">Excel export matches the Combined Bid Sheet: hidden <b>Raw Data</b> and <b>Working</b> sheets plus a <b>Final Calculation Sheet</b> (A–AC) with the same live formulas as the imported workbook. Re-import the same .xlsx from Import — Lot No + Buyer is auto-detected. <b>Google Drive</b> can upload the file after a one-time Google sign-in.</p>
           </div>
           <div class="panel">
             <h2>Import</h2>
@@ -1032,37 +1032,34 @@ function jsInflateRaw(src) {
 
 /* ---------------- XLSX writer (live formulas, no dependencies) ---------------- */
 var XLSX_COLS = [
-  ['lot_no', 'Lot No', 'n'],
-  ['buyer', 'Buyer', 's'],
-  ['auction', 'Auction', 'n'],
-  ['lot_name', 'Material', 's'],
-  ['unit', 'Unit', 's'],
-  ['qty', 'Qty', 'n'],
+  ['qty', 'Quantity', 'n'],
+  ['lot_name', 'Lot Name', 's'],
   ['rate', 'Rate', 'n'],
-  ['mat_value', 'Material Value', 'f:F{r}*G{r}'],
-  ['gst', 'GST', 'f:ROUND(H{r}*0.18,0)'],
-  ['tcs', 'TCS', 'f:ROUND((H{r}+I{r})*0.02,0)'],
-  ['service_charge_mstc', 'MSTC Service Charge', 'f:ROUND((H{r}+I{r})*0.0225,0)'],
-  ['tds194h', 'TDS 194H', 'f:ROUND(H{r}*0.0225*0.02,0)'],
-  ['net_service_charge', 'Net Service Charge', 'f:K{r}-L{r}'],
-  ['tds194o', 'TDS 194O', 'f:ROUND(H{r}*0.001,0)'],
-  ['gst_tds_rate', 'GST TDS Rate %', 'n'],
-  ['gst_tds', 'GST TDS', 'autoGstTds'],
-  ['total_receivables', 'Total Receivables in Cash', 'f:H{r}+I{r}+J{r}-M{r}-N{r}-P{r}'],
-  ['sd_expected', 'SD Expected', 'auto25'],
-  ['sd_received', 'SD Received', 'n'],
-  ['sd_date', 'SD Date', 's'],
-  ['fp_expected', 'FP Expected', 'autoFp'],
-  ['fp_received', 'FP Received', 'n'],
-  ['fp_date', 'FP Date', 's'],
-  ['total_received', 'Total Received', 'f:S{r}+V{r}'],
-  ['outstanding', 'Outstanding', 'f:Q{r}-X{r}'],
-  ['invoice_no', 'Invoice No', 's'],
-  ['invoice_link', 'Invoice Link', 's'],
-  ['mat_value_plus_gst', 'Mat. Value + GST', 'n'],
-  ['service_charge_to_mstc', 'Service charge to MSTC', 'n'],
-  ['short_excess_payment', 'Short/(Excess) Payment', 'n'],
-  ['sap_document_date', 'SAP Document Date', 's'],
+  ['auction', 'Bid Sheet', 'n'],
+  ['unit', 'Unit', 's'],
+  ['lot_no', 'Lot No.', 'n'],
+  ['buyer', 'Buyer', 's'],
+  ['mat_value', 'Mat. Value', 'n'],
+  ['gst', 'GST', 'f:ROUND(H{r}*18%,0)'],
+  ['mat_value_plus_gst', 'Mat. Value + GST', 'f:+H{r}+I{r}'],
+  ['tcs', 'TCS', 'f:ROUND((H{r}+I{r})*2%,0)'],
+  ['tds194o', 'TDS u/s 194(O)', 'f:H{r}*0.1%'],
+  ['service_charge_mstc', 'Service Charge\nto MSTC', 'f:H{r}*2.25%*118%'],
+  ['tds194h', 'TDS u/s 194(H)', 'f:H{r}*2.25%*2%'],
+  ['net_service_charge', 'Net Service Charge\n(post TDS 194H)', 'f:M{r}-N{r}'],
+  ['service_charge_to_mstc', 'Service charge to MSTC', 'f:ROUND(O{r}+L{r},0)'],
+  ['gst_tds_rate', 'GST TDS Rate', 'pct'],
+  ['gst_tds', 'GST TDS', 'f:ROUND(H{r}*Q{r},0)'],
+  ['total_receivables', 'Total Receivables in Cash', 'f:ROUND(H{r}*117.65%-R{r},0)'],
+  ['sd_expected', 'Security Deposit (Expected)', 'f:ROUND(H{r}*25%,0)'],
+  ['sd_received', 'Security Deposit (Received)', 'n'],
+  ['sd_date', 'Date of Receipt', 's'],
+  ['fp_expected', 'Final Payment (Expected)', 'f:ROUND(H{r}*92.65%-R{r},0)'],
+  ['fp_received', 'Final Payment (Received)', 'n'],
+  ['fp_date', 'Date of Receipt', 's'],
+  ['short_excess_payment', 'Short/(Excess) Payment', 'f:+S{r}-U{r}-X{r}'],
+  ['invoice_no', 'Invoice No. ', 's'],
+  ['sap_document_date', 'SAP Document', 's'],
   ['doc_invoice_date', 'Doc./Invoice Date', 's']
 ];
 function colLetter(i) { var s = ''; i++; while (i > 0) { var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = (i - m - 1) / 26; } return s; }
@@ -1104,29 +1101,41 @@ function buildSheetXml(lots, customCols) {
   return buildDataSheetXml(lots, customCols);
 }
 
+function bidSheetTitle(lots) {
+  var aucs = uniqueKeys(lots, 'auction');
+  return 'MSTC LIMITED - COMBINED BID SHEET (Auctions ' + (aucs.length ? aucs.join(', ') : '—') + ')';
+}
+function gstTdsRateFraction(r) {
+  var rate = numOr(r && r.gst_tds_rate);
+  if (rate > 0 && rate >= 1) rate = rate / 100;
+  return rate;
+}
+
 function xlsxStyleFor(field, kind, isTotal) {
   if (isTotal) return 17;
-  if (field === 'gst_tds_rate') return 10;
-  if (field === 'sd_date' || field === 'fp_date') return 9;
-  if (field === 'buyer' || field === 'lot_name' || field === 'unit' || field === 'invoice_no' || field === 'invoice_link' || (kind === 's')) return 9;
+  if (field === 'gst_tds_rate' || kind === 'pct') return 8;
+  if (field === 'sd_date' || field === 'fp_date' || field === 'doc_invoice_date') return 9;
+  if (field === 'buyer' || field === 'lot_name' || field === 'unit' || field === 'invoice_no' || field === 'invoice_link' || field === 'sap_document_date' || (kind === 's')) return 9;
   if (field === 'lot_no' || field === 'auction' || field === 'qty' || field === 'rate') return 10;
   if (field === 'sd_received' || field === 'fp_received') return 11;
-  if (field === 'total_receivables' || field === 'total_received' || field === 'outstanding') return 13;
+  if (field === 'total_receivables' || field === 'total_received' || field === 'outstanding' || field === 'short_excess_payment') return 13;
   return 12;
 }
 function buildDataSheetXml(lots, customCols) {
   customCols = customCols || [];
   var COLS = xlsxColSet(customCols);
-  var lastData = lots.length + 1;
+  var firstData = 4;
+  var lastData = lots.length ? firstData + lots.length - 1 : 3;
   var tRow = lastData + 1;
   var lastCol = colLetter(COLS.length - 1);
-  var moneyStyle = { mat_value: 1, mat_value_plus_gst: 1, gst: 1, tcs: 1, service_charge_mstc: 1, tds194h: 1, net_service_charge: 1, service_charge_to_mstc: 1, tds194o: 1, gst_tds: 1, total_receivables: 1, sd_expected: 1, sd_received: 1, fp_expected: 1, fp_received: 1, short_excess_payment: 1, total_received: 1, outstanding: 1 };
+  var title = bidSheetTitle(lots);
   var rows = [];
-  rows.push('<row r="1" ht="22" customHeight="1">' + COLS.map(function (c, i) {
-    return cellInline(colLetter(i) + '1', c[1], 4);
+  rows.push('<row r="1" ht="18" customHeight="1">' + cellInline('B1', title, 6) + '</row>');
+  rows.push('<row r="3" ht="60.75" customHeight="1">' + COLS.map(function (c, i) {
+    return cellInline(colLetter(i) + '3', c[1], 4);
   }).join('') + '</row>');
   lots.forEach(function (r, ri) {
-    var rowN = ri + 2;
+    var rowN = firstData + ri;
     var cells = COLS.map(function (c, ci) {
       var field = c[0], kind = c[2], ref = colLetter(ci) + rowN;
       if (kind === 's') {
@@ -1134,34 +1143,31 @@ function buildDataSheetXml(lots, customCols) {
         if (v === null || v === undefined || v === '') return '<c r="' + ref + '" s="' + xlsxStyleFor(field, kind, false) + '"/>';
         return cellInline(ref, v, xlsxStyleFor(field, kind, false));
       }
+      if (kind === 'pct') {
+        return cellNum(ref, gstTdsRateFraction(r), xlsxStyleFor(field, kind, false));
+      }
       if (kind.indexOf('f:') === 0) {
         var f = kind.slice(2).replace(/\{r\}/g, rowN);
         return cellFormula(ref, f, r[field], xlsxStyleFor(field, kind, false));
       }
-      if (kind === 'auto25') {
-        return cellFormula(ref, 'ROUND(H' + rowN + '*0.25,0)', r.sd_expected, xlsxStyleFor(field, kind, false));
-      }
-      if (kind === 'autoGstTds') {
-        return cellFormula(ref, 'ROUND(H' + rowN + '*O' + rowN + '/100,0)', r.gst_tds, xlsxStyleFor(field, kind, false));
-      }
-      if (kind === 'autoFp') {
-        return cellFormula(ref, 'Q' + rowN + '-R' + rowN, r.fp_expected, xlsxStyleFor(field, kind, false));
-      }
       var nv = r[field];
       if (nv === null || nv === undefined || nv === '') {
+        return '<c r="' + ref + '" s="' + xlsxStyleFor(field, kind, false) + '"/>';
+      }
+      if ((field === 'sd_received' || field === 'fp_received') && Number(nv) === 0) {
         return '<c r="' + ref + '" s="' + xlsxStyleFor(field, kind, false) + '"/>';
       }
       return cellNum(ref, nv, xlsxStyleFor(field, kind, false));
     }).join('');
     rows.push('<row r="' + rowN + '">' + cells + '</row>');
   });
-  var sumCols = ['qty','mat_value','mat_value_plus_gst','gst','tcs','service_charge_mstc','tds194h','net_service_charge','service_charge_to_mstc','tds194o','gst_tds','total_receivables','sd_expected','sd_received','fp_expected','fp_received','short_excess_payment','total_received','outstanding'];
+  var sumCols = ['qty','mat_value','mat_value_plus_gst','gst','tcs','service_charge_mstc','tds194h','net_service_charge','service_charge_to_mstc','tds194o','gst_tds','total_receivables','sd_expected','sd_received','fp_expected','fp_received','short_excess_payment'];
   var tCells = COLS.map(function (c, i) {
     var ref = colLetter(i) + tRow;
     if (c[0] === 'buyer') return cellInline(ref, 'TOTAL', 16);
-    if (sumCols.indexOf(c[0]) !== -1) {
+    if (sumCols.indexOf(c[0]) !== -1 && lots.length) {
       var L = colLetter(i);
-      var formula = lastData >= 2 ? 'SUM(' + L + '2:' + L + lastData + ')' : '0';
+      var formula = 'SUM(' + L + firstData + ':' + L + lastData + ')';
       return cellFormula(ref, formula, sumField(lots, c[0]), 17);
     }
     return '<c r="' + ref + '" s="16"/>';
@@ -1169,33 +1175,143 @@ function buildDataSheetXml(lots, customCols) {
   rows.push('<row r="' + tRow + '" ht="20" customHeight="1">' + tCells + '</row>');
   var colsDef = '<cols>' +
     '<col min="1" max="1" width="9"/>' +
-    '<col min="2" max="2" width="34"/>' +
-    '<col min="3" max="3" width="9"/>' +
-    '<col min="4" max="4" width="44"/>' +
-    '<col min="5" max="5" width="7"/>' +
-    '<col min="6" max="7" width="10"/>' +
-    '<col min="8" max="16" width="15"/>' +
-    '<col min="17" max="17" width="22"/>' +
-    '<col min="18" max="24" width="13"/>' +
-    '<col min="25" max="25" width="15"/>' +
+    '<col min="2" max="2" width="30"/>' +
+    '<col min="3" max="3" width="10"/>' +
+    '<col min="4" max="4" width="10"/>' +
+    '<col min="5" max="5" width="6"/>' +
+    '<col min="6" max="6" width="8"/>' +
+    '<col min="7" max="7" width="26"/>' +
+    '<col min="8" max="8" width="12"/>' +
+    '<col min="9" max="16" width="12"/>' +
+    '<col min="17" max="18" width="10"/>' +
+    '<col min="19" max="19" width="14"/>' +
+    '<col min="20" max="26" width="12"/>' +
+    '<col min="27" max="29" width="14"/>' +
     '</cols>';
-  var tableRef = 'A1:' + lastCol + Math.max(lastData, 1);
+  var filterEnd = lots.length ? lastData : 3;
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
     '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
     '<sheetPr><tabColor rgb="FF002FA7"/><pageSetUpPr fitToPage="1"/></sheetPr>' +
     '<dimension ref="A1:' + lastCol + tRow + '"/>' +
-    '<sheetViews><sheetView workbookViewId="0" showGridLines="1" tabSelected="1"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+    '<sheetViews><sheetView workbookViewId="0" showGridLines="0" tabSelected="1"><pane xSplit="7" ySplit="3" topLeftCell="H4" activePane="bottomRight" state="frozen"/></sheetView></sheetViews>' +
     '<sheetFormatPr defaultRowHeight="16"/>' + colsDef +
     '<sheetData>' + rows.join('') + '</sheetData>' +
-    (lastData >= 2 ? (
-      '<conditionalFormatting sqref="Y2:Y' + lastData + '">' +
+    (lots.length ? (
+      '<autoFilter ref="A3:' + lastCol + filterEnd + '"/>' +
+      '<conditionalFormatting sqref="Z' + firstData + ':Z' + lastData + '">' +
         '<cfRule type="cellIs" dxfId="0" priority="1" operator="greaterThan"><formula>0</formula></cfRule>' +
         '<cfRule type="cellIs" dxfId="1" priority="2" operator="lessThan"><formula>0</formula></cfRule>' +
       '</conditionalFormatting>'
     ) : '') +
     '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
     '<pageSetup orientation="landscape" paperSize="9" scale="65" fitToWidth="1" fitToHeight="0"/>' +
-    '<tableParts count="1"><tablePart r:id="rId1"/></tableParts>' +
+    '</worksheet>';
+}
+
+function buildRawDataSheetXml(lots) {
+  lots = lots || [];
+  var firstData = 4;
+  var lastData = lots.length ? firstData + lots.length - 1 : 3;
+  var tRow = lastData + 1;
+  var title = bidSheetTitle(lots);
+  var heads = ['Bid Sheet', 'Lot No.', 'Buyer', 'Lot Name', 'Quantity', 'Unit', 'Status', 'Rate', 'Mat. Value'];
+  var rows = [];
+  rows.push('<row r="1">' + cellInline('A1', title, 6) + '</row>');
+  rows.push('<row r="3" ht="22" customHeight="1">' + heads.map(function (h, i) {
+    return cellInline(colLetter(i) + '3', h, 4);
+  }).join('') + '</row>');
+  lots.forEach(function (r, ri) {
+    var n = firstData + ri;
+    var cells =
+      cellNum('A' + n, r.auction, 10) +
+      cellNum('B' + n, r.lot_no, 10) +
+      cellInline('C' + n, r.buyer, 9) +
+      cellInline('D' + n, r.lot_name, 9) +
+      cellNum('E' + n, r.qty, 10) +
+      cellInline('F' + n, r.unit || 'NO', 9) +
+      cellInline('G' + n, 'Sold', 9) +
+      cellNum('H' + n, r.rate, 10) +
+      cellFormula('I' + n, 'E' + n + '*H' + n, r.mat_value, 12);
+    rows.push('<row r="' + n + '">' + cells + '</row>');
+  });
+  if (lots.length) {
+    rows.push('<row r="' + tRow + '">' +
+      cellInline('C' + tRow, 'TOTAL', 16) +
+      cellFormula('I' + tRow, 'SUM(I' + firstData + ':I' + lastData + ')', sumField(lots, 'mat_value'), 17) +
+      '</row>');
+  }
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetPr><tabColor rgb="FF64748B"/></sheetPr>' +
+    '<dimension ref="A1:I' + tRow + '"/>' +
+    '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+    '<sheetFormatPr defaultRowHeight="16"/>' +
+    '<cols><col min="1" max="1" width="12"/><col min="2" max="2" width="10"/><col min="3" max="3" width="28"/><col min="4" max="4" width="44"/><col min="5" max="8" width="10"/><col min="9" max="9" width="14"/></cols>' +
+    '<sheetData>' + rows.join('') + '</sheetData>' +
+    (lots.length ? '<autoFilter ref="A3:I' + lastData + '"/>' : '') +
+    '</worksheet>';
+}
+
+function buildWorkingSheetXml(lots) {
+  lots = lots || [];
+  var firstData = 8;
+  var lastData = lots.length ? firstData + lots.length - 1 : 7;
+  var tRow = lastData + 1;
+  var title = bidSheetTitle(lots);
+  var heads = ['Lot No.', 'Buyer', 'Mat. Value', 'GST TDS', 'Total Receivables in Cash', 'Security Deposit (Expected)', 'Security Deposit (Received)', 'Date of Receipt', 'Final Payment (Expected)', 'Final Payment (Received)', 'Date of Receipt', 'Short/(Excess) Payment'];
+  var rows = [];
+  rows.push('<row r="1">' + cellInline('A1', title, 6) + '</row>');
+  rows.push('<row r="3" ht="36" customHeight="1">' + heads.map(function (h, i) {
+    return cellInline(colLetter(i) + '3', h, 4);
+  }).join('') + '</row>');
+  rows.push('<row r="4">' +
+    cellNum('C4', 100, 10) +
+    cellNum('D4', 2, 10) +
+    cellFormula('E4', '117.65-D4', 115.65, 5) +
+    cellFormula('F4', 'ROUND(C4*25%,0)', 25, 5) +
+    cellFormula('G4', '92.65-D4', 90.65, 5) +
+    '</row>');
+  lots.forEach(function (r, ri) {
+    var n = firstData + ri;
+    var rate = numOr(r.gst_tds_rate);
+    if (rate > 0 && rate < 1) rate = rate * 100;
+    var cells =
+      cellNum('A' + n, r.lot_no, 10) +
+      cellInline('B' + n, r.buyer, 9) +
+      cellNum('C' + n, r.mat_value, 12) +
+      cellFormula('D' + n, 'ROUND(C' + n + '*' + numXml(rate) + '%,0)', r.gst_tds, 12) +
+      cellFormula('E' + n, 'ROUND(C' + n + '*117.65%-D' + n + ',0)', r.total_receivables, 13) +
+      cellFormula('F' + n, 'ROUND(C' + n + '*25%,0)', r.sd_expected, 12) +
+      (r.sd_received === null || r.sd_received === undefined || r.sd_received === '' ? '<c r="G' + n + '" s="11"/>' : cellNum('G' + n, r.sd_received, 11)) +
+      (r.sd_date ? cellInline('H' + n, r.sd_date, 9) : '<c r="H' + n + '" s="9"/>') +
+      cellFormula('I' + n, 'ROUND(C' + n + '*92.65%-D' + n + ',0)', r.fp_expected, 12) +
+      (r.fp_received === null || r.fp_received === undefined || r.fp_received === '' ? '<c r="J' + n + '" s="11"/>' : cellNum('J' + n, r.fp_received, 11)) +
+      (r.fp_date ? cellInline('K' + n, r.fp_date, 9) : '<c r="K' + n + '" s="9"/>') +
+      cellFormula('L' + n, 'E' + n + '-G' + n + '-J' + n, r.short_excess_payment, 13);
+    rows.push('<row r="' + n + '">' + cells + '</row>');
+  });
+  if (lots.length) {
+    rows.push('<row r="' + tRow + '">' +
+      cellInline('B' + tRow, 'TOTAL', 16) +
+      cellFormula('C' + tRow, 'SUM(C' + firstData + ':C' + lastData + ')', sumField(lots, 'mat_value'), 17) +
+      cellFormula('D' + tRow, 'SUM(D' + firstData + ':D' + lastData + ')', sumField(lots, 'gst_tds'), 17) +
+      cellFormula('E' + tRow, 'SUM(E' + firstData + ':E' + lastData + ')', sumField(lots, 'total_receivables'), 17) +
+      cellFormula('F' + tRow, 'SUM(F' + firstData + ':F' + lastData + ')', sumField(lots, 'sd_expected'), 17) +
+      cellFormula('G' + tRow, 'SUM(G' + firstData + ':G' + lastData + ')', sumField(lots, 'sd_received'), 17) +
+      cellFormula('I' + tRow, 'SUM(I' + firstData + ':I' + lastData + ')', sumField(lots, 'fp_expected'), 17) +
+      cellFormula('J' + tRow, 'SUM(J' + firstData + ':J' + lastData + ')', sumField(lots, 'fp_received'), 17) +
+      cellFormula('L' + tRow, 'SUM(L' + firstData + ':L' + lastData + ')', sumField(lots, 'short_excess_payment'), 17) +
+      '</row>');
+  }
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+    '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    '<sheetPr><tabColor rgb="FF0B1F4B"/></sheetPr>' +
+    '<dimension ref="A1:L' + tRow + '"/>' +
+    '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="3" topLeftCell="A4" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+    '<sheetFormatPr defaultRowHeight="16"/>' +
+    '<cols><col min="1" max="1" width="10"/><col min="2" max="2" width="28"/><col min="3" max="12" width="14"/></cols>' +
+    '<sheetData>' + rows.join('') + '</sheetData>' +
+    (lots.length ? '<autoFilter ref="A3:L' + lastData + '"/>' : '') +
     '</worksheet>';
 }
 
@@ -1506,9 +1622,6 @@ function buildXlsx(lots, customCols) {
   lots = lots || [];
   var enc = new TextEncoder();
   var F = function (name, text) { return { name: name, data: enc.encode(text) }; };
-  var pbi = buildPowerBiSheet(lots);
-  var lastBuyer = Math.max(pbi.lastBuyer, pbi.dimStart);
-  var lastAuction = Math.max(pbi.lastAuction, pbi.dimStart);
   var files = [
     F('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
       '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
@@ -1519,9 +1632,6 @@ function buildXlsx(lots, customCols) {
       '<Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
       '<Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
       '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
-      '<Override PartName="/xl/tables/table1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/>' +
-      '<Override PartName="/xl/tables/table2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/>' +
-      '<Override PartName="/xl/tables/table3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.table+xml"/>' +
       '<Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/>' +
       '<Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/>' +
       '</Types>'),
@@ -1533,7 +1643,7 @@ function buildXlsx(lots, customCols) {
       '</Relationships>'),
     F('docProps/core.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
       '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:dcmitype="http://purl.org/dc/dcmitype/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">' +
-      '<dc:title>ScrapSale Pro — Cash Receivables</dc:title>' +
+      '<dc:title>MSTC LIMITED - Combined Bid Sheet</dc:title>' +
       '<dc:creator>ScrapSale Pro</dc:creator>' +
       '<cp:lastModifiedBy>ScrapSale Pro</cp:lastModifiedBy>' +
       '</cp:coreProperties>'),
@@ -1543,7 +1653,7 @@ function buildXlsx(lots, customCols) {
       '<DocSecurity>0</DocSecurity>' +
       '<ScaleCrop>false</ScaleCrop>' +
       '<HeadingPairs><vt:vector size="2" baseType="variant"><vt:variant><vt:lpstr>Worksheets</vt:lpstr></vt:variant><vt:variant><vt:i4>3</vt:i4></vt:variant></vt:vector></HeadingPairs>' +
-      '<TitlesOfParts><vt:vector size="3" baseType="lpstr"><vt:lpstr>Cash Receivables</vt:lpstr><vt:lpstr>Pivot Analytics</vt:lpstr><vt:lpstr>Power BI</vt:lpstr></vt:vector></TitlesOfParts>' +
+      '<TitlesOfParts><vt:vector size="3" baseType="lpstr"><vt:lpstr>Raw Data</vt:lpstr><vt:lpstr>Working</vt:lpstr><vt:lpstr>Final Calculation Sheet</vt:lpstr></vt:vector></TitlesOfParts>' +
       '<Company></Company>' +
       '<LinksUpToDate>false</LinksUpToDate>' +
       '<SharedDoc>false</SharedDoc>' +
@@ -1554,11 +1664,11 @@ function buildXlsx(lots, customCols) {
       '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
       '<fileVersion appName="xl" lastEdited="7" lowestEdited="7" rupBuild="22228"/>' +
       '<workbookPr/>' +
-      '<bookViews><workbookView xWindow="0" yWindow="0" windowWidth="24000" windowHeight="14000"/></bookViews>' +
+      '<bookViews><workbookView xWindow="0" yWindow="0" windowWidth="28800" windowHeight="11685" firstSheet="2" activeTab="2"/></bookViews>' +
       '<sheets>' +
-        '<sheet name="Cash Receivables" sheetId="1" r:id="rId1"/>' +
-        '<sheet name="Pivot Analytics" sheetId="2" r:id="rId3"/>' +
-        '<sheet name="Power BI" sheetId="3" r:id="rId4"/>' +
+        '<sheet name="Raw Data" sheetId="2" state="hidden" r:id="rId1"/>' +
+        '<sheet name="Working" sheetId="3" state="hidden" r:id="rId3"/>' +
+        '<sheet name="Final Calculation Sheet" sheetId="1" r:id="rId4"/>' +
       '</sheets>' +
       '<calcPr fullCalcOnLoad="1"/>' +
       '</workbook>'),
@@ -1628,21 +1738,9 @@ function buildXlsx(lots, customCols) {
       '</dxfs>' +
       '<tableStyles count="0" defaultTableStyle="TableStyleMedium2" defaultPivotStyle="PivotStyleLight16"/>' +
       '</styleSheet>'),
-    F('xl/worksheets/sheet1.xml', buildDataSheetXml(lots, customCols)),
-    F('xl/worksheets/_rels/sheet1.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/table1.xml"/>' +
-      '</Relationships>'),
-    F('xl/worksheets/sheet2.xml', buildPivotAnalyticsSheet(lots)),
-    F('xl/worksheets/sheet3.xml', pbi.xml),
-    F('xl/worksheets/_rels/sheet3.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
-      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
-      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/table2.xml"/>' +
-      '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/table" Target="../tables/table3.xml"/>' +
-      '</Relationships>'),
-    F('xl/tables/table1.xml', buildTableXml(lots, customCols)),
-    F('xl/tables/table2.xml', buildDimTableXml(2, 'DimBuyer', 'Buyer', 'A' + pbi.dimStart + ':A' + lastBuyer)),
-    F('xl/tables/table3.xml', buildDimTableXml(3, 'DimAuction', 'Auction', 'C' + pbi.dimStart + ':C' + lastAuction))
+    F('xl/worksheets/sheet1.xml', buildRawDataSheetXml(lots)),
+    F('xl/worksheets/sheet2.xml', buildWorkingSheetXml(lots)),
+    F('xl/worksheets/sheet3.xml', buildDataSheetXml(lots, customCols))
   ];
   return zipStore(files);
 }
@@ -1781,7 +1879,7 @@ var HEADER_ALIASES = {
   'fp received': 'fp_received', 'final payment received': 'fp_received', 'final payment (received)': 'fp_received', 'balance received': 'fp_received',
   'fp date': 'fp_date', 'final payment date': 'fp_date', 'balance date': 'fp_date',
   'short/(excess) payment': 'short_excess_payment', 'short excess payment': 'short_excess_payment',
-  'sap document date': 'sap_document_date', 'doc./invoice date': 'doc_invoice_date', 'doc/invoice date': 'doc_invoice_date',
+  'sap document date': 'sap_document_date', 'sap document': 'sap_document_date', 'doc./invoice date': 'doc_invoice_date', 'doc/invoice date': 'doc_invoice_date',
   'date of receipt': 'sd_date',
   'total received': 'total_received', 'received': 'total_received',
   'outstanding': 'outstanding', 'balance outstanding': 'outstanding', 'pending': 'outstanding'
@@ -3512,7 +3610,7 @@ function endEdit(input, skipNormalize) {
 
 /* ---------------- export ---------------- */
 var EXPORT_SPECS = [
-  { id: 'xlsx', label: 'Excel', ext: '.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', color: '#1d7a3d', desc: 'Live formulas + Excel Table + Pivot Analytics + Power BI sheet. Opens in Excel / Sheets. Re-importable.' },
+  { id: 'xlsx', label: 'Excel', ext: '.xlsx', mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', color: '#1d7a3d', desc: 'Combined Bid Sheet layout (Raw Data, Working, Final Calculation Sheet) with live Excel formulas. Opens in Excel / Sheets. Re-importable.' },
   { id: 'html', label: 'HTML', ext: '.html', mime: 'text/html', color: '#e35d1f', desc: 'Modern standalone styled report with KPI cards, totals and embedded JSON data.' },
   { id: 'pdf', label: 'PDF', ext: '.pdf', mime: 'application/pdf', color: '#b91c1c', desc: 'Print-ready A4 landscape report with summary, grand totals and pagination.' },
   { id: 'csv', ext: '.csv', label: 'CSV', mime: 'text/csv', color: '#2563eb', desc: 'Comma-separated with UTF-8 BOM + totals row. Re-import friendly.' },
@@ -3551,7 +3649,7 @@ function doExport(id) {
   try {
     var built = buildExportBytes(id, lotsToExport);
     downloadBlob(built.bytes, name + built.ext, built.mime);
-    showToast('Exported ' + lotsToExport.length + ' lots → ' + spec.label + spec.ext + (id === 'xlsx' ? ' with live formulas and colour coding' : ''), 'ok');
+    showToast('Exported ' + lotsToExport.length + ' lots → ' + spec.label + spec.ext + (id === 'xlsx' ? ' as Combined Bid Sheet with live formulas' : ''), 'ok');
   } catch (e) {
     showToast('Export failed: ' + e.message, 'error');
   }
@@ -4704,56 +4802,6 @@ function init() {
   document.addEventListener('keyup', function (e) {
     if (e.key === 'Shift') gridSel.shiftDown = false;
   });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && e.target.matches && e.target.matches('table.lots-table input[data-lot]')) {
-      e.preventDefault();
-      var tr = e.target.closest('tr');
-      var next = tr && tr.nextElementSibling;
-      endEdit(e.target);
-      if (next) {
-        var sameField = e.target.getAttribute('data-field');
-        var inp = next.querySelector('input[data-field="' + sameField + '"]') || next.querySelector('input[data-lot]');
-        if (inp) inp.focus();
-      }
-    }
-  });
-
-  // keyboard shortcuts
-  document.addEventListener('keydown', function (e) {
-    var mod = e.ctrlKey || e.metaKey;
-    if (!mod) return;
-    var k = e.key.toLowerCase();
-    var inCell = e.target && e.target.matches && e.target.matches('#detailTable input[data-lot]');
-    if (k === 'z' && !e.shiftKey) {
-      if (inCell) {
-        e.preventDefault();
-        if (pendingEdit) endEdit(pendingEdit.input);
-        undo();
-      } else if (e.target && e.target.matches && e.target.matches('input, textarea, select')) {
-        return; // native text undo for search boxes
-      } else {
-        e.preventDefault(); undo();
-      }
-    } else if (k === 'y' || (k === 'z' && e.shiftKey)) {
-      if (inCell) { e.preventDefault(); if (pendingEdit) endEdit(pendingEdit.input); redo(); }
-      else if (e.target && e.target.matches && e.target.matches('input, textarea, select')) return;
-      else { e.preventDefault(); redo(); }
-    }
-  });
-
-  window.addEventListener('resize', function () {
-    applyFreezePanes(document.getElementById('detailTable'));
-    applyFreezePanes(document.getElementById('detailTableDash'));
-  });
-  setView('dashboard');
-  updateSaveIndicator();
-  if (!storage.ok) showToast('Autosave is disabled in this sandboxed preview — your data lives in this page session. Export a backup for persistence.');
-}
-init();
-</script>
-</body>
-</html>
-
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && e.target.matches && e.target.matches('table.lots-table input[data-lot]')) {
       e.preventDefault();
